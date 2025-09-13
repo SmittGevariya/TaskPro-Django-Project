@@ -10,11 +10,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalCloseButton = document.getElementById('modal-close-button');
     const taskIdInput = document.getElementById('task-id');
 
+    const confirmModal = document.getElementById('confirm-delete-modal');
+    const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
+    const cancelDeleteBtn = document.getElementById('cancel-delete-btn');
+
     const openModal = () => taskModal.classList.remove('hidden');
     const closeModal = () => taskModal.classList.add('hidden');
+    const openConfirmModal = () => confirmModal.classList.remove('hidden');
+    const closeConfirmModal = () => confirmModal.classList.add('hidden');
 
     modalCloseButton.addEventListener('click', closeModal);
     modalSaveButton.addEventListener('click', () => modalForm.requestSubmit());
+    cancelDeleteBtn.addEventListener('click',closeConfirmModal);
     logoutButton.addEventListener('click', () => {
         localStorage.clear();
         logoutButton.classList.add('hidden');
@@ -50,6 +57,8 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // CORRECT: Listener for the modal form is also set here.
             modalForm.addEventListener('submit', handleModalFormSubmit);
+
+            confirmDeleteBtn.addEventListener('click',handleConfirmDelete);
             
             document.getElementById('filter-container').addEventListener('click',handleFilterClick);
 
@@ -159,9 +168,21 @@ document.addEventListener('DOMContentLoaded', () => {
         const taskId = target.dataset.id;
         if (!action || !taskId) return;
         if (action === 'complete') markTaskComplete(taskId);
-        else if (action === 'delete') { if (confirm('Are you sure you want to delete this task?')) deleteTask(taskId); }
+        else if (action === 'delete') {
+            confirmDeleteBtn.dataset.taskIdToDelete = taskId;
+            openConfirmModal();
+        }
         else if (action === 'edit') handleEditClick(taskId);
     };
+
+    const handleConfirmDelete = () => {
+        const taskId = confirmDeleteBtn.dataset.taskIdToDelete;
+        if(taskId){
+            deleteTask(taskId);
+            closeConfirmModal();
+            delete confirmDeleteBtn.dataset.taskIdToDelete;
+        }
+    }
 
     const markTaskComplete = async (taskId) => {
         const token = localStorage.getItem('accessToken');
