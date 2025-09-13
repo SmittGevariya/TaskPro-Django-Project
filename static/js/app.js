@@ -14,9 +14,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
     const cancelDeleteBtn = document.getElementById('cancel-delete-btn');
 
+    const modalCloseButtonX = document.getElementById('modal-close-button-x');
+
     const openModal = () => {
         taskModal.classList.remove('hidden');
-
         setTimeout(() => {
             taskModal.classList.add('opacity-100');
             taskModal.querySelector('div').classList.add('scale-100')
@@ -65,15 +66,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }).showToast();
     };
 
-    modalCloseButton.addEventListener('click', closeModal);
-    modalSaveButton.addEventListener('click', () => modalForm.requestSubmit());
-    cancelDeleteBtn.addEventListener('click',closeConfirmModal);
-    logoutButton.addEventListener('click', () => {
-        localStorage.clear();
-        logoutButton.classList.add('hidden');
-        loadView('login');
-    });
-
     const loadView = async (viewName) => {
         try {
             const response = await fetch(`/components/${viewName}/`);
@@ -100,13 +92,14 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // CORRECT: Listener for the whole task list is set here, once.
             document.getElementById('task-list').addEventListener('click', handleTaskActions);
-            
-            // CORRECT: Listener for the modal form is also set here.
-            modalForm.addEventListener('submit', handleModalFormSubmit);
 
             confirmDeleteBtn.addEventListener('click',handleConfirmDelete);
             
             document.getElementById('filter-container').addEventListener('click',handleFilterClick);
+
+            modalForm.removeEventListener('submit',handleModalFormSubmit)
+            modalForm.addEventListener('submit', handleModalFormSubmit); 
+
 
             const userGreeting = document.getElementById('user-greeting');
             const username = localStorage.getItem('username');
@@ -298,7 +291,19 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!taskList) return;
         taskList.innerHTML = '';
         if (tasks.length === 0) {
-            taskList.innerHTML = '<p class="text-gray-500 col-span-full">No tasks found. Add one above!</p>';
+            taskList.innerHTML = `
+                <div class="text-center col-span-full py-12">
+                    <svg class="mx-auto h-12 w-12 text-gray-400" xmlns="http://www.w3.org/2000/svg" 
+                        viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" 
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="9"></circle>
+                        <line x1="12" y1="8" x2="12" y2="16"></line>
+                        <line x1="8" y1="12" x2="16" y2="12"></line>
+                    </svg>
+                    <h3 class="mt-2 text-lg font-medium text-gray-900">No tasks yet</h3>
+                    <p class="mt-1 text-sm text-gray-500">Get started by creating your first task.</p>
+                </div>
+            `;
             return;
         }
         tasks.forEach(task => {
@@ -326,6 +331,18 @@ document.addEventListener('DOMContentLoaded', () => {
             taskList.innerHTML += taskCard;
         });
     };
+
+    modalCloseButton.addEventListener('click', closeModal);
+    modalCloseButtonX.addEventListener('click',closeModal);
+    // modalSaveButton.addEventListener('click', () => modalForm.requestSubmit());
+    cancelDeleteBtn.addEventListener('click',closeConfirmModal);
+    logoutButton.addEventListener('click', () => {
+        localStorage.clear();
+        logoutButton.classList.add('hidden');
+        loadView('login');
+    });
+
+    
 
     const token = localStorage.getItem('accessToken');
     if (token) {
