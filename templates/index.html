@@ -5,21 +5,29 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>TaskPro</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+    
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
     {% load static %}
 </head>
 <body class="bg-gray-100">
-    <nav class="bg-gray-800 shadow-md">
+    <nav class="bg-white shadow-md">
         <div class="container mx-auto px-6 py-3 flex justify-between items-center">
-            <a class="text-xl font-bold text-white ps-3" href="#">TaskPro</a>
-            <button id="logout-button" class="bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 hidden">Logout</button>
+            <a class="text-xl font-bold text-gray-800 ps-3" href="#">TaskPro</a>
+            <button id="logout-button" class="bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 hidden">Logout</button>
         </div>
     </nav>
 
-    <div id="app-content" class="container mx-auto px-6 py-8">
+    <div id="app-content" class="container mx-auto max-w-7xl px-6 py-8">
         </div>
     
-        <div id="task-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden">
-            <div class="relative top-20 mx-auto p-5 border w-full max-w-lg shadow-lg rounded-md bg-white">
+        <div id="task-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden opacity-0 transition-opacity duration-300 ease-in-out">
+            <div class="relative top-20 mx-auto p-5 border w-full max-w-lg shadow-lg rounded-md scale-95 bg-white transition-transform duration-300 ease-in-out">
                 <div class="mt-3">
                     <h3 class="text-2xl leading-6 font-bold text-gray-900 text-center" id="modal-title">Add Task</h3>
                     <div class="mt-4 px-7 py-3">
@@ -30,20 +38,20 @@
     
                             <div class="mb-4 text-left">
                                 <label for="modal-task-title" class="block text-gray-700 text-sm font-bold mb-2">Title</label>
-                                <input type="text" placeholder="e.g., Finish project report" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500" id="modal-task-title" name="title" required>
+                                <input type="text" placeholder="e.g., Finish project report" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" id="modal-task-title" name="title" required>
                             </div>
                             <div class="mb-4 text-left">
                                 <label for="modal-task-description" class="block text-gray-700 text-sm font-bold mb-2">Description</label>
-                                <textarea placeholder="Add more details..." class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500" id="modal-task-description" name="description" rows="3"></textarea>
+                                <textarea placeholder="Add more details..." class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" id="modal-task-description" name="description" rows="3"></textarea>
                             </div>
                             <div class="grid grid-cols-2 gap-4 mb-4 text-left">
                                 <div>
                                     <label for="modal-task-due-date" class="block text-gray-700 text-sm font-bold mb-2">Due Date</label>
-                                    <input type="date" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500" id="modal-task-due-date" name="due_date" required>
+                                    <input type="date" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" id="modal-task-due-date" name="due_date" required>
                                 </div>
                                 <div>
                                     <label for="modal-task-priority" class="block text-gray-700 text-sm font-bold mb-2">Priority</label>
-                                    <select class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500" id="modal-task-priority" name="priority">
+                                    <select class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" id="modal-task-priority" name="priority">
                                         <option value="Low">Low</option>
                                         <option value="Medium">Medium</option>
                                         <option value="High">High</option>
@@ -53,7 +61,7 @@
                         </form>
                     </div>
                     <div class="items-center px-4 py-3 border-t">
-                        <button id="modal-save-button" class="px-4 py-2 bg-indigo-600 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        <button id="modal-save-button" class="px-4 py-2 bg-blue-600 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                             Save Changes
                         </button>
                         <button id="modal-close-button" class="mt-2 px-4 py-2 bg-gray-200 text-gray-800 text-base font-medium rounded-md w-full shadow-sm hover:bg-gray-300">
@@ -64,8 +72,8 @@
             </div>
         </div>
     
-        <div id="confirm-delete-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden">
-            <div class="relative top-20 mx-auto p-5 border w-full max-w-sm shadow-lg rounded-md bg-white">
+        <div id="confirm-delete-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden transition-opacity duration-300 ease-in-out">
+            <div class="relative top-20 mx-auto p-5 border w-full max-w-sm shadow-lg rounded-md bg-white transition-transform duration-300 ease-in-out">
                 <div class="mt-3 text-center">
                     <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
                         <svg class="h-6 w-6 text-red-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">

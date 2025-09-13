@@ -14,10 +14,37 @@ document.addEventListener('DOMContentLoaded', () => {
     const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
     const cancelDeleteBtn = document.getElementById('cancel-delete-btn');
 
-    const openModal = () => taskModal.classList.remove('hidden');
-    const closeModal = () => taskModal.classList.add('hidden');
-    const openConfirmModal = () => confirmModal.classList.remove('hidden');
-    const closeConfirmModal = () => confirmModal.classList.add('hidden');
+    const openModal = () => {
+        taskModal.classList.remove('hidden');
+
+        setTimeout(() => {
+            taskModal.classList.add('opacity-100');
+            taskModal.querySelector('div').classList.add('scale-100')
+        }, 10);
+    }
+    const closeModal = () => {
+        taskModal.classList.remove('opacity-100');
+        taskModal.querySelector('div').classList.remove('scale-100');
+        setTimeout(() => {
+            taskModal.classList.add('hidden');
+        }, 300);
+        
+    }
+    const openConfirmModal = () => {
+        confirmModal.classList.remove('hidden');
+        setTimeout(() => {
+            confirmModal.classList.add('opacity-100');
+            confirmModal.querySelector('div').classList.add('scale-100');
+        }, 10);
+    }
+    const closeConfirmModal = () => {
+        confirmModal.classList.remove('opacity-100');
+        confirmModal.querySelector('div').classList.remove('scale-100');
+        setTimeout(() => {
+            confirmModal.classList.add('hidden');
+        }, 300);
+        
+    }
 
     const showToast = (message, type='success') => {
         const colors = {
@@ -277,7 +304,8 @@ document.addEventListener('DOMContentLoaded', () => {
         tasks.forEach(task => {
             const priorityColors = { 'High': 'bg-red-100 text-red-800', 'Medium': 'bg-yellow-100 text-yellow-800', 'Low': 'bg-green-100 text-green-800' };
             const taskCard = `
-                <div class="bg-white rounded-lg shadow-md p-5 flex flex-col justify-between ${task.is_completed ? 'opacity-50 border-l-4 border-green-500' : 'border-l-4 border-gray-300'}">
+                <div class="bg-white rounded-lg shadow-md p-5 flex flex-col justify-between ${task.is_completed ? 'opacity-50 border-l-4 border-green-500' : 'border-l-4 border-gray-300'}
+                transition-all duration-300 ease-in-out hover:shadow-xl hover:scale-105">
                     <div>
                         <div class="flex justify-between items-start">
                             <h5 class="text-lg font-bold text-gray-900 mb-2">${task.title}</h5>
@@ -288,9 +316,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="border-t pt-4 mt-4 flex justify-between items-center">
                         <p class="text-sm text-gray-500">Due: ${task.due_date}</p>
                         <div class="flex items-center space-x-2">
-                            <button class="text-xs bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-1 px-3 rounded-full" data-action="edit" data-id="${task.id}">Edit</button>
-                            <button class="text-xs bg-green-500 hover:bg-green-600 text-white font-bold py-1 px-3 rounded-full disabled:opacity-50" data-action="complete" data-id="${task.id}" ${task.is_completed ? 'disabled' : ''}>Done</button>
-                            <button class="text-xs bg-red-500 hover:bg-red-600 text-white font-bold py-1 px-3 rounded-full" data-action="delete" data-id="${task.id}">Delete</button>
+                            <button class="transition-colors duration-200 text-xs bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-1 px-3 rounded-full" data-action="edit" data-id="${task.id}">Edit</button>
+                            <button class="transition-colors duration-200 text-xs bg-green-500 hover:bg-green-600 text-white font-bold py-1 px-3 rounded-full disabled:opacity-50" data-action="complete" data-id="${task.id}" ${task.is_completed ? 'disabled' : ''}>Done</button>
+                            <button class="transition-colors duration-200 text-xs bg-red-500 hover:bg-red-600 text-white font-bold py-1 px-3 rounded-full" data-action="delete" data-id="${task.id}">Delete</button>
                         </div>
                     </div>
                 </div>
