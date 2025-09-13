@@ -51,6 +51,8 @@ document.addEventListener('DOMContentLoaded', () => {
             // CORRECT: Listener for the modal form is also set here.
             modalForm.addEventListener('submit', handleModalFormSubmit);
             
+            document.getElementById('filter-container').addEventListener('click',handleFilterClick);
+
             const userGreeting = document.getElementById('user-greeting');
             const username = localStorage.getItem('username');
             if (username) userGreeting.textContent = username;
@@ -186,12 +188,35 @@ document.addEventListener('DOMContentLoaded', () => {
             alert(error.message);
         }
     };
+
+    const handleFilterClick = (e) => {
+        const target = e.target;
+        if(target.dataset.action !== 'filter') return;
+
+        const filterType = target.dataset.filter;
+        let queryParams = '';
+
+        if (filterType === 'pending'){
+            queryParams = '?is_completed=false';
+        }else if (filterType === 'completed'){
+            queryParams = '?is_completed=true';
+        }
+
+        document.querySelectorAll('[data-action="filter"]').forEach(btn=>{
+            btn.classList.remove('bg-blue-500','text-white');
+            btn.classList.add('bg-gray-200','text-gray-700');
+        });
+        target.classList.add('bg-blue-500','text-white');
+        target.classList.remove('bg-gray-200','text-gray-700');
+
+        fetchTasks(queryParams);
+    }
     
-    const fetchTasks = async () => {
+    const fetchTasks = async (queryParams = '') => {
         const token = localStorage.getItem('accessToken');
         if (!token) return;
         try {
-            const response = await fetch(`${API_URL}/tasks/`, { method: 'GET', headers: { 'Authorization': `Bearer ${token}` } });
+            const response = await fetch(`${API_URL}/tasks/${queryParams}`, { method: 'GET', headers: { 'Authorization': `Bearer ${token}` } });
             if (!response.ok) throw new Error('Could not fetch tasks.');
             const tasks = await response.json();
             renderTasks(tasks);

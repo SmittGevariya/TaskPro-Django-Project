@@ -7,6 +7,13 @@
 
 <hr class="mb-6">
 
+<div class="flex items-center mb-4 space-x-2" id="filter-container">
+    <span class="text-sm font-bold text-gray-600">Filter by:</span>
+    <button data-action="filter" data-filter="all" class="filter-btn bg-blue-500 text-white py-1 px-3 text-sm rounded-full">All</button>
+    <button data-action="filter" data-filter="pending" class="filter-btn bg-gray-200 text-gray-700 py-1 px-3 text-sm rounded-full">Pending</button>
+    <button data-action="filter" data-filter="completed" class="filter-btn bg-gray-200 text-gray-700 py-1 px-3 text-sm rounded-full">Completed</button>
+</div>
+
 <h3 class="text-2xl font-bold text-gray-800 mb-4">Your Tasks</h3>
 <div id="task-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
     </div>
