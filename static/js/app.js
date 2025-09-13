@@ -19,6 +19,25 @@ document.addEventListener('DOMContentLoaded', () => {
     const openConfirmModal = () => confirmModal.classList.remove('hidden');
     const closeConfirmModal = () => confirmModal.classList.add('hidden');
 
+    const showToast = (message, type='success') => {
+        const colors = {
+            success : 'linear-gradient(to right, #00b09b, #96c93d)',
+            error : 'linear-gradient(to right, #ff5f6d, #ffc371)',
+        };
+
+        Toastify({
+            text: message,
+            duration: 3000,
+            close: true,
+            gravity : "top",
+            position: "right",
+            stopOnFocus: true,
+            style: {
+                background: colors[type] || colors.success
+            },
+        }).showToast();
+    };
+
     modalCloseButton.addEventListener('click', closeModal);
     modalSaveButton.addEventListener('click', () => modalForm.requestSubmit());
     cancelDeleteBtn.addEventListener('click',closeConfirmModal);
@@ -87,8 +106,7 @@ document.addEventListener('DOMContentLoaded', () => {
             logoutButton.classList.remove('hidden');
             loadView('dashboard');
         } catch (error) {
-            loginError.textContent = error.message;
-            loginError.classList.remove('hidden');
+            showToast(error.message,'error');
         }
     };
 
@@ -102,11 +120,10 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await fetch(`${API_URL}/auth/register/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
             if (!response.ok) { const errorData = await response.json(); const errorMessage = Object.entries(errorData).map(([field, messages]) => `${field}: ${messages.join(', ')}`).join('\n'); throw new Error(errorMessage); }
-            alert('Registration successful! Please log in.');
+            showToast('Registration successful! Please log in.');
             loadView('login');
         } catch (error) {
-            registerError.textContent = error.message;
-            registerError.classList.remove('hidden');
+            showToast(error.message,'error');
         }
     };
 
@@ -156,8 +173,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!response.ok) { const errData = await response.json(); throw new Error(JSON.stringify(errData)); };
             closeModal();
             fetchTasks();
+            showToast(taskId ? 'Task updated successfully!' : 'Task created successfully!');
         } catch (error) {
-            alert('Error saving task: ' + error.message);
+            showToast('Error saving task: ' + error.message , 'error');
         }
     };
 
@@ -194,8 +212,9 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             if (!response.ok) throw new Error('Failed to update task.');
             fetchTasks();
+            showToast('Task marked as complete!')
         } catch (error) {
-            alert(error.message);
+            showToast(error.message,'error');
         }
     };
 
@@ -205,8 +224,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch(`${API_URL}/tasks/${taskId}/`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
             if (!response.ok) throw new Error('Failed to delete task.');
             fetchTasks();
+            showToast('Task deleted successfully.');
         } catch (error) {
-            alert(error.message);
+            showToast(error.message,'error')
         }
     };
 
