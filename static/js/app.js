@@ -2,6 +2,8 @@ document.addEventListener('DOMContentLoaded',()=>{
     const loginView = document.getElementById('login-view');
     const registerView = document.getElementById('register-view');
     const dashboardView = document.getElementById('dashboard-view');
+    const userGreeting = document.getElementById('user-greeting');
+    const logoutButton = document.getElementById('logout-button');
 
     const loginForm = document.getElementById('login-form');
     const registerForm = document.getElementById('register-form');
@@ -63,8 +65,56 @@ document.addEventListener('DOMContentLoaded',()=>{
         }
     });
 
-    loginForm.addEventListener('submit',(e)=>{
+    loginForm.addEventListener('submit',async(e)=>{
         e.preventDefault();
-        alert("Login functionality coming soon!")
-    })
+        loginError.classList.add('d-none'); 
+
+        const formData=new FormData(loginForm);
+        const data=Object.fromEntries(formData.entries());
+
+        try{
+            const response=await fetch(`${API_URL}/auth/login/`,{
+                method:'POST',
+                headers:{'Content-Type':'application/json'},
+                body:JSON.stringify(data),
+            });
+
+            if (!response.ok){
+                const errorData=await response.json();
+                throw new Error(errorData.detail || 'Failed to login.');
+            }
+
+            const tokens=await response.json();
+
+            localStorage.setItem('accessToken',tokens.access);
+            localStorage.setItem('refreshToken',tokens.refresh);
+
+            showDashboard();
+        }catch(error){
+            loginError.textContent=error.message;
+            loginError.classList.remove('d-none');
+        }
+    });
+
+    logoutButton.addEventListener('click',()=>{
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+        
+        dashboardView.classList.add('d-none');
+        logoutButton.classList.add('d-none');
+        loginView.classList.remove('d-none');
+    });
+
+    function showDashboard(){
+        loginView.classList.add('d-none');
+        registerView.classList.add('d-none');
+        dashboardView.classList.remove('d-none');
+        logoutButton.classList.remove('d-none');
+
+        const token=localStorage.getItem('accessToken');
+        if(token){
+            const payload=JSON.parse(atob(token.split('.')[1]));
+            userGreeting.textContent=payload.username;
+        }
+    }
 })
