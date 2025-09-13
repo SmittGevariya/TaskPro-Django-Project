@@ -30,10 +30,9 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('add-task-form').addEventListener('submit', handleAddTask);
             
             const userGreeting = document.getElementById('user-greeting');
-            const token = localStorage.getItem('accessToken');
-            if(token) {
-                 const payload = JSON.parse(atob(token.split('.')[1]));
-                 userGreeting.textContent = payload.username;
+            const username = localStorage.getItem('username');
+            if(username) {
+                 userGreeting.textContent = username;
             }
             fetchTasks();
         }
@@ -61,6 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
             localStorage.setItem('accessToken', tokens.access);
             localStorage.setItem('refreshToken', tokens.refresh);
             
+            localStorage.setItem('username',data.username);
             logoutButton.classList.remove('hidden', 'd-none'); // Use both for safety
             loadView('dashboard');
         } catch (error) {
