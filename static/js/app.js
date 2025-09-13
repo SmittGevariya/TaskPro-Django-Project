@@ -120,6 +120,55 @@ document.addEventListener('DOMContentLoaded', () => {
             alert(error.message);
         }
     };
+
+    const handleTaskAction = (e) => {
+        const target=e.target;
+        const action=target.dataset.action;
+        const taskId=target.dataset.id;
+
+        if(!action || !taskId) return;
+
+        if(action === 'complete'){
+            markTaskComplete(taskId);
+        }else if(action === 'delete'){
+            if(confirm('Are you sure you want to delete this task?')){
+                deleteTask(taskId);
+            }
+        }
+    };
+
+    const markTaskComplete = async(taskId) => {
+        const token=localStorage.getItem('accessToken');
+        try{
+            const response=await fetch(`${API_URL}/tasks/${taskId}/`,{
+                method:'PATCH',
+                headers:{
+                    'Content-Type':'application/json',
+                    'Authorization':`Bearer ${token}`
+                },
+                body:JSON.stringify({is_completed:true})
+            });
+            if(!response.ok) throw new Error('Failed to update task.');
+            fetchTasks();
+            }catch(error){
+                alert(error.message);
+            }
+    };
+
+    const deleteTask = async (taskId) => {
+        const token = localStorage.getItem('accessToken');
+        try {
+            const response = await fetch(`${API_URL}/tasks/${taskId}/`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!response.ok) throw new Error('Failed to delete task.');
+            fetchTasks(); // Refresh the list
+        } catch (error) {
+            alert(error.message);
+        }
+    };
+
     
     const fetchTasks = async () => {
         const token = localStorage.getItem('accessToken');
@@ -132,6 +181,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!response.ok) throw new Error('Could not fetch tasks.');
             const tasks = await response.json();
             renderTasks(tasks);
+
+            const taskList=document.getElementById('task-list');
+            if(taskList){
+                taskList.removeEventListener('click',handleTaskAction);
+                taskList.addEventListener('click',handleTaskAction)
+            } 
         } catch (error) {
             console.error('Fetch tasks error:', error);
         }
@@ -168,10 +223,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="border-t pt-4 mt-4 flex justify-between items-center">
                         <p class="text-sm text-gray-500">Due: ${task.due_date}</p>
                         <div>
-                            <button class="text-xs bg-green-500 hover:bg-green-600 text-white font-bold py-1 px-3 rounded-full disabled:opacity-50" data-id="${task.id}" ${task.is_completed ? 'disabled' : ''}>
+                            <button class="text-xs bg-green-500 hover:bg-green-600 text-white font-bold py-1 px-3 rounded-full disabled:opacity-50" data-action="complete" data-id="${task.id}" ${task.is_completed ? 'disabled' : ''}>
                                 Done
                             </button>
-                            <button class="text-xs bg-red-500 hover:bg-red-600 text-white font-bold py-1 px-3 rounded-full" data-id="${task.id}">
+                            <button class="text-xs bg-red-500 hover:bg-red-600 text-white font-bold py-1 px-3 rounded-full" data-action="delete" data-id="${task.id}">
                                 Delete
                             </button>
                         </div>
