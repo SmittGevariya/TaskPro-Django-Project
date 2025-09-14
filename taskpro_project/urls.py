@@ -15,16 +15,17 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path,include
+from django.urls import path,include,re_path
 from django.views.generic import TemplateView
 
 urlpatterns = [
-
-    path('',TemplateView.as_view(template_name='index.html'),name='home'),
-    path('components/login/',TemplateView.as_view(template_name='components/login.html'),name='component-login'),
-    path('components/register/',TemplateView.as_view(template_name='components/register.html'),name='component-register'),
-    path('components/dashboard/',TemplateView.as_view(template_name='components/dashboard.html'),name='component-dashboard'),
     path('admin/', admin.site.urls),
     path('api/auth/',include('users.urls')),
     path('api/',include('tasks.urls')),
+
+    path('components/login/',TemplateView.as_view(template_name='components/login.html'),name='component-login'),
+    path('components/register/',TemplateView.as_view(template_name='components/register.html'),name='component-register'),
+    path('components/dashboard/',TemplateView.as_view(template_name='components/dashboard.html'),name='component-dashboard'),
+
+    re_path(r'^(?:.*)/?$',TemplateView.as_view(template_name='index.html'),name='home'),
 ]

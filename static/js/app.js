@@ -2,209 +2,329 @@ document.addEventListener('DOMContentLoaded', () => {
     const appContent = document.getElementById('app-content');
     const logoutButton = document.getElementById('logout-button');
     const API_URL = 'http://127.0.0.1:8000/api';
+    let taskModal, modalForm, modalTitle, modalSaveButton, modalCloseButton, taskIdInput, confirmModal, confirmDeleteBtn, cancelDeleteBtn, modalCloseButtonX;
+    let modalListenersAttached = false;
 
-    const taskModal = document.getElementById('task-modal');
-    const modalForm = document.getElementById('modal-form');
-    const modalTitle = document.getElementById('modal-title');
-    const modalSaveButton = document.getElementById('modal-save-button');
-    const modalCloseButton = document.getElementById('modal-close-button');
-    const taskIdInput = document.getElementById('task-id');
-
-    const confirmModal = document.getElementById('confirm-delete-modal');
-    const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
-    const cancelDeleteBtn = document.getElementById('cancel-delete-btn');
-
-    const modalCloseButtonX = document.getElementById('modal-close-button-x');
-
-    const openModal = () => {
-        taskModal.classList.remove('hidden');
-        setTimeout(() => {
-            taskModal.classList.add('opacity-100');
-            taskModal.querySelector('div').classList.add('scale-100')
-        }, 10);
-    }
-    const closeModal = () => {
-        taskModal.classList.remove('opacity-100');
-        taskModal.querySelector('div').classList.remove('scale-100');
-        setTimeout(() => {
-            taskModal.classList.add('hidden');
-        }, 300);
-        
-    }
-    const openConfirmModal = () => {
-        confirmModal.classList.remove('hidden');
-        setTimeout(() => {
-            confirmModal.classList.add('opacity-100');
-            confirmModal.querySelector('div').classList.add('scale-100');
-        }, 10);
-    }
-    const closeConfirmModal = () => {
-        confirmModal.classList.remove('opacity-100');
-        confirmModal.querySelector('div').classList.remove('scale-100');
-        setTimeout(() => {
-            confirmModal.classList.add('hidden');
-        }, 300);
-        
-    }
-
-    const showToast = (message, type='success') => {
-        const colors = {
-            success : 'linear-gradient(to right, #00b09b, #96c93d)',
-            error : 'linear-gradient(to right, #ff5f6d, #ffc371)',
-        };
-
-        Toastify({
-            text: message,
-            duration: 3000,
-            close: true,
-            gravity : "top",
-            position: "right",
-            stopOnFocus: true,
-            style: {
-                background: colors[type] || colors.success
-            },
-        }).showToast();
+    const getModalElements = () => {
+        taskModal = document.getElementById('task-modal');
+        modalForm = document.getElementById('modal-form');
+        modalTitle = document.getElementById('modal-title');
+        modalSaveButton = document.getElementById('modal-save-button');
+        modalCloseButton = document.getElementById('modal-close-button');
+        taskIdInput = document.getElementById('task-id');
+        confirmModal = document.getElementById('confirm-delete-modal');
+        confirmDeleteBtn = document.getElementById('confirm-delete-btn');
+        cancelDeleteBtn = document.getElementById('cancel-delete-btn');
+        modalCloseButtonX = document.getElementById('modal-close-button-x');
     };
 
-    const forceLogout = () => {
-        localStorage.clear();
-        logoutButton.classList.add('hidden');
-        loadView('login');
-        showToast('Your session has expired. Please log in again.','error');
+    const initModalListeners = () => {
+        // Only attach listeners once
+        if (modalListenersAttached) return;
+        
+        // Initialize modal elements
+        getModalElements();
+        
+        // Attach modal event listeners only once
+        if (modalForm) {
+            modalCloseButton.addEventListener('click', closeTaskModal);
+            modalCloseButtonX.addEventListener('click', closeTaskModal);
+            // Save button is type="submit" so it will automatically trigger form submit
+            // No need for a separate click handler
+            cancelDeleteBtn.addEventListener('click', closeConfirmModal);
+            confirmDeleteBtn.addEventListener('click', handleConfirmDelete);
+            modalForm.addEventListener('submit', handleModalFormSubmit);
+            modalListenersAttached = true;
+        }
+    };
+
+    const showToast = (message, type = 'success') => {
+        const colors = {
+            success: 'linear-gradient(to right, #00b09b, #96c93d)',
+            error: 'linear-gradient(to right, #ff5f6d, #ffc371)',
+        };
+        if (typeof Toastify !== 'undefined') {
+            Toastify({ 
+                text: message, 
+                duration: 3000, 
+                close: true, 
+                gravity: "top", 
+                position: "right", 
+                stopOnFocus: true, 
+                style: { background: colors[type] || colors.success } 
+            }).showToast();
+        }
+    };
+
+    const openTaskModal = () => { 
+        if (taskModal) {
+            taskModal.classList.remove('hidden'); 
+            setTimeout(() => { 
+                taskModal.classList.remove('opacity-0'); 
+                const form = taskModal.querySelector('form');
+                if (form) form.classList.remove('scale-95'); 
+            }, 10); 
+        }
+    };
+
+    const closeTaskModal = () => { 
+        if (taskModal) {
+            taskModal.classList.add('opacity-0'); 
+            const form = taskModal.querySelector('form');
+            if (form) form.classList.add('scale-95'); 
+            setTimeout(() => taskModal.classList.add('hidden'), 300); 
+        }
+    };
+
+    const openConfirmModal = () => { 
+        if (confirmModal) {
+            confirmModal.classList.remove('hidden'); 
+            setTimeout(() => { 
+                confirmModal.classList.remove('opacity-0'); 
+                const modalContent = confirmModal.querySelector('div.relative');
+                if (modalContent) modalContent.classList.remove('scale-95'); 
+            }, 10); 
+        }
+    };
+
+    const closeConfirmModal = () => { 
+        if (confirmModal) {
+            confirmModal.classList.add('opacity-0'); 
+            const modalContent = confirmModal.querySelector('div.relative');
+            if (modalContent) modalContent.classList.add('scale-95'); 
+            setTimeout(() => confirmModal.classList.add('hidden'), 300); 
+        }
+    };
+
+    const forceLogout = () => { 
+        localStorage.clear(); 
+        if (logoutButton) logoutButton.classList.add('hidden'); 
+        navigateTo('/login'); 
+        showToast('Your session has expired.', 'error'); 
+    };
+
+    const navigateTo = (path) => {
+        history.pushState(null, null, path);
+        router();
+    };
+
+    const router = async () => {
+        const routes = [
+            { path: "/login", view: 'login' }, 
+            { path: "/register", view: 'register' }, 
+            { path: "/", view: 'dashboard' }
+        ];
+        let match = routes.find(route => route.path === location.pathname);
+        if (!match) { 
+            match = { path: "/", view: 'dashboard' }; 
+        }
+
+        const token = localStorage.getItem('accessToken');
+        
+        // Manage logout button visibility based on authentication state
+        if (token && logoutButton) {
+            logoutButton.classList.remove('hidden');
+        } else if (!token && logoutButton) {
+            logoutButton.classList.add('hidden');
+        }
+        
+        if (match.view === 'dashboard' && !token) { 
+            return navigateTo('/login'); 
+        }
+        if ((match.view === 'login' || match.view === 'register') && token) { 
+            return navigateTo('/'); 
+        }
+
+        await loadView(match.view);
     };
 
     const loadView = async (viewName) => {
         try {
             const response = await fetch(`/components/${viewName}/`);
-            if (!response.ok) throw new Error('Template not found');
-            const viewHtml = await response.text();
-            appContent.innerHTML = viewHtml;
-            attachEventListeners(viewName);
+            if (!response.ok) throw new Error(`Template not found for ${viewName}`);
+            
+            const htmlContent = await response.text();
+            if (appContent) {
+                appContent.innerHTML = htmlContent;
+                setTimeout(() => attachEventListeners(viewName), 50);
+            }
         } catch (error) {
             console.error('Error loading view:', error);
-            appContent.innerHTML = `<p class="text-red-500 font-bold">Error: Could not load page content. Please check the browser console for more details.</p>`;
+            if (appContent) {
+                appContent.innerHTML = `<div class="p-8"><p class="text-red-500 font-bold">Error: Could not load page content.</p><p class="text-gray-600 mt-2">${error.message}</p></div>`;
+            }
         }
     };
 
     const attachEventListeners = (viewName) => {
         if (viewName === 'login') {
-            document.getElementById('login-form').addEventListener('submit', handleLogin);
-            document.getElementById('show-register').addEventListener('click', (e) => { e.preventDefault(); loadView('register'); });
+            const loginForm = document.getElementById('login-form');
+            if (loginForm) {
+                loginForm.addEventListener('submit', handleLogin);
+            }
         } else if (viewName === 'register') {
-            document.getElementById('register-form').addEventListener('submit', handleRegister);
-            document.getElementById('show-login').addEventListener('click', (e) => { e.preventDefault(); loadView('login'); });
+            const registerForm = document.getElementById('register-form');
+            if (registerForm) {
+                registerForm.addEventListener('submit', handleRegister);
+            }
         } else if (viewName === 'dashboard') {
-            // CORRECT: Listens for a CLICK on the BUTTON, not a submit on a form
-            document.getElementById('add-task-btn').addEventListener('click', handleAddTaskClick);
+            // Refresh modal elements (but don't reattach listeners)
+            getModalElements();
             
-            // CORRECT: Listener for the whole task list is set here, once.
-            document.getElementById('task-list').addEventListener('click', handleTaskActions);
+            // Attach dashboard element listeners
+            const addTaskBtn = document.getElementById('add-task-btn');
+            if (addTaskBtn) {
+                addTaskBtn.addEventListener('click', handleAddTaskClick);
+            }
 
-            confirmDeleteBtn.addEventListener('click',handleConfirmDelete);
-            
-            document.getElementById('filter-container').addEventListener('click',handleFilterClick);
+            const taskList = document.getElementById('task-list');
+            if (taskList) {
+                taskList.addEventListener('click', handleTaskActions);
+            }
 
-            modalForm.removeEventListener('submit',handleModalFormSubmit)
-            modalForm.addEventListener('submit', handleModalFormSubmit); 
+            const filterContainer = document.getElementById('filter-container');
+            if (filterContainer) {
+                filterContainer.addEventListener('click', handleFilterClick);
+            }
 
-
+            // Set user greeting
             const userGreeting = document.getElementById('user-greeting');
             const username = localStorage.getItem('username');
-            if (username) userGreeting.textContent = username;
-            
+            if (username && userGreeting) {
+                userGreeting.textContent = username;
+            }
+
             fetchTasks();
         }
     };
-    
+
     const handleLogin = async (e) => {
         e.preventDefault();
-        const loginForm = e.target;
-        const loginError = document.getElementById('login-error');
-        loginError.classList.add('hidden');
-        const formData = new FormData(loginForm);
+        const formData = new FormData(e.target);
         const data = Object.fromEntries(formData.entries());
+        
         try {
-            const response = await fetch(`${API_URL}/auth/login/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
-            if (!response.ok) { const errorData = await response.json(); throw new Error(errorData.detail || 'Failed to login.'); }
-            const tokens = await response.json();
-            localStorage.setItem('accessToken', tokens.access);
-            localStorage.setItem('refreshToken', tokens.refresh);
+            const response = await fetch(`${API_URL}/auth/login/`, { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify(data) 
+            });
+            const responseData = await response.json();
+            
+            if (!response.ok) throw new Error(responseData.detail || 'Failed to login.');
+            
+            localStorage.setItem('accessToken', responseData.access);
+            localStorage.setItem('refreshToken', responseData.refresh);
             localStorage.setItem('username', data.username);
-            logoutButton.classList.remove('hidden');
-            loadView('dashboard');
-        } catch (error) {
-            showToast(error.message,'error');
+            
+            navigateTo('/');
+        } catch (error) { 
+            showToast(error.message, 'error'); 
         }
     };
 
     const handleRegister = async (e) => {
         e.preventDefault();
-        const registerForm = e.target;
-        const registerError = document.getElementById('register-error');
-        registerError.classList.add('hidden');
-        const formData = new FormData(registerForm);
+        const formData = new FormData(e.target);
         const data = Object.fromEntries(formData.entries());
+        
         try {
-            const response = await fetch(`${API_URL}/auth/register/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
-            if (!response.ok) { const errorData = await response.json(); const errorMessage = Object.entries(errorData).map(([field, messages]) => `${field}: ${messages.join(', ')}`).join('\n'); throw new Error(errorMessage); }
+            const response = await fetch(`${API_URL}/auth/register/`, { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify(data) 
+            });
+            const responseData = await response.json();
+            
+            if (!response.ok) { 
+                const errorMessage = Object.entries(responseData)
+                    .map(([field, messages]) => `${field}: ${messages.join(', ')}`)
+                    .join(' | '); 
+                throw new Error(errorMessage); 
+            }
             showToast('Registration successful! Please log in.');
-            loadView('login');
-        } catch (error) {
-            showToast(error.message,'error');
+            navigateTo('/login');
+        } catch (error) { 
+            showToast(error.message, 'error'); 
         }
     };
 
     const handleAddTaskClick = () => {
-        modalForm.reset();
-        taskIdInput.value = '';
-        modalTitle.textContent = 'Add New Task';
-        openModal();
+        if (modalForm) modalForm.reset();
+        if (taskIdInput) taskIdInput.value = '';
+        if (modalTitle) modalTitle.textContent = 'Add New Task';
+        openTaskModal();
     };
 
     const handleEditClick = async (taskId) => {
         const token = localStorage.getItem('accessToken');
         try {
-            const response = await fetch(`${API_URL}/tasks/${taskId}/`, { headers: { 'Authorization': `Bearer ${token}` } });
-            if(response.status===401){forceLogout();return;}
+            const response = await fetch(`${API_URL}/tasks/${taskId}/`, { 
+                headers: { 'Authorization': `Bearer ${token}` } 
+            });
+            if (response.status === 401) { return forceLogout(); }
             if (!response.ok) throw new Error('Task not found');
+            
             const task = await response.json();
+
+            if (taskIdInput) taskIdInput.value = task.id;
             
-            taskIdInput.value = task.id;
-            document.getElementById('modal-task-title').value = task.title;
-            document.getElementById('modal-task-description').value = task.description;
-            document.getElementById('modal-task-due-date').value = task.due_date;
-            document.getElementById('modal-task-priority').value = task.priority;
-            
-            modalTitle.textContent = 'Edit Task';
-            openModal();
-        } catch(error) {
-            alert(error.message);
+            const modalTaskTitle = document.getElementById('modal-task-title');
+            const modalTaskDescription = document.getElementById('modal-task-description');
+            const modalTaskDueDate = document.getElementById('modal-task-due-date');
+            const modalTaskPriority = document.getElementById('modal-task-priority');
+
+            if (modalTaskTitle) modalTaskTitle.value = task.title;
+            if (modalTaskDescription) modalTaskDescription.value = task.description;
+            if (modalTaskDueDate) modalTaskDueDate.value = task.due_date;
+            if (modalTaskPriority) modalTaskPriority.value = task.priority;
+            if (modalTitle) modalTitle.textContent = 'Edit Task';
+
+            openTaskModal();
+        } catch(error) { 
+            showToast(error.message, 'error'); 
         }
     };
-    
+
     const handleModalFormSubmit = async (e) => {
         e.preventDefault();
+        
+        // Prevent multiple rapid submissions
+        if (modalForm.dataset.submitting === 'true') {
+            return;
+        }
+        
+        modalForm.dataset.submitting = 'true';
+        
         const token = localStorage.getItem('accessToken');
         const formData = new FormData(modalForm);
         const data = Object.fromEntries(formData.entries());
         const taskId = data.task_id;
-        
         const method = taskId ? 'PUT' : 'POST';
         const url = taskId ? `${API_URL}/tasks/${taskId}/` : `${API_URL}/tasks/`;
 
         try {
-            const response = await fetch(url, {
-                method: method,
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify(data)
+            const response = await fetch(url, { 
+                method: method, 
+                headers: { 
+                    'Content-Type': 'application/json', 
+                    'Authorization': `Bearer ${token}` 
+                }, 
+                body: JSON.stringify(data) 
             });
-            if(response.status===401){forceLogout();return;}
-            if (!response.ok) { const errData = await response.json(); throw new Error(JSON.stringify(errData)); };
-            closeModal();
+            if (response.status === 401) { return forceLogout(); }
+            if (!response.ok) { 
+                const errData = await response.json(); 
+                throw new Error(JSON.stringify(errData)); 
+            }
+            closeTaskModal();
             fetchTasks();
             showToast(taskId ? 'Task updated successfully!' : 'Task created successfully!');
         } catch (error) {
-            showToast('Error saving task: ' + error.message , 'error');
+            showToast('Error saving task: ' + error.message, 'error');
+        } finally {
+            // Reset the submitting flag
+            modalForm.dataset.submitting = 'false';
         }
     };
 
@@ -213,88 +333,106 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!target) return;
         const action = target.dataset.action;
         const taskId = target.dataset.id;
+
         if (!action || !taskId) return;
         if (action === 'complete') markTaskComplete(taskId);
         else if (action === 'delete') {
-            confirmDeleteBtn.dataset.taskIdToDelete = taskId;
+            if (confirmDeleteBtn) confirmDeleteBtn.dataset.taskIdToDelete = taskId;
             openConfirmModal();
-        }
-        else if (action === 'edit') handleEditClick(taskId);
+        } else if (action === 'edit') handleEditClick(taskId);
     };
 
     const handleConfirmDelete = () => {
-        const taskId = confirmDeleteBtn.dataset.taskIdToDelete;
-        if(taskId){
-            deleteTask(taskId);
-            closeConfirmModal();
-            delete confirmDeleteBtn.dataset.taskIdToDelete;
+        if (confirmDeleteBtn) {
+            const taskId = confirmDeleteBtn.dataset.taskIdToDelete;
+            if (taskId) {
+                deleteTask(taskId);
+                closeConfirmModal();
+                delete confirmDeleteBtn.dataset.taskIdToDelete;
+            }
         }
-    }
+    };
+
+    const handleFilterClick = (e) => {
+        const target = e.target;
+        if (target.dataset.action !== 'filter') return;
+        const filterType = target.dataset.filter;
+
+        let queryParams = '';
+        if (filterType === 'pending') queryParams = '?is_completed=false';
+        else if (filterType === 'completed') queryParams = '?is_completed=true';
+
+        document.querySelectorAll('[data-action="filter"]').forEach(btn => {
+            btn.classList.remove('bg-blue-500', 'text-white');
+            btn.classList.add('bg-gray-200', 'text-gray-700');
+        });
+        target.classList.add('bg-blue-500', 'text-white');
+        target.classList.remove('bg-gray-200', 'text-gray-700');
+        fetchTasks(queryParams);
+    };
 
     const markTaskComplete = async (taskId) => {
         const token = localStorage.getItem('accessToken');
         try {
-            const response = await fetch(`${API_URL}/tasks/${taskId}/`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify({ is_completed: true })
+            const response = await fetch(`${API_URL}/tasks/${taskId}/`, { 
+                method: 'PATCH', 
+                headers: { 
+                    'Content-Type': 'application/json', 
+                    'Authorization': `Bearer ${token}` 
+                }, 
+                body: JSON.stringify({ is_completed: true }) 
             });
-            if(response.status===401){forceLogout();return;}
+            if (response.status === 401) { return forceLogout(); }
             if (!response.ok) throw new Error('Failed to update task.');
             fetchTasks();
-            showToast('Task marked as complete!')
+            showToast('Task marked as complete!');
         } catch (error) {
-            showToast(error.message,'error');
+            showToast(error.message, 'error');
         }
     };
 
     const deleteTask = async (taskId) => {
         const token = localStorage.getItem('accessToken');
         try {
-            const response = await fetch(`${API_URL}/tasks/${taskId}/`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
-            if(response.status===401){forceLogout();return;}
+            const response = await fetch(`${API_URL}/tasks/${taskId}/`, { 
+                method: 'DELETE', 
+                headers: { 'Authorization': `Bearer ${token}` } 
+            });
+            if (response.status === 401) { return forceLogout(); }
             if (!response.ok) throw new Error('Failed to delete task.');
             fetchTasks();
             showToast('Task deleted successfully.');
         } catch (error) {
-            showToast(error.message,'error')
+            showToast(error.message, 'error');
         }
     };
 
-    const handleFilterClick = (e) => {
-        const target = e.target;
-        if(target.dataset.action !== 'filter') return;
-
-        const filterType = target.dataset.filter;
-        let queryParams = '';
-
-        if (filterType === 'pending'){
-            queryParams = '?is_completed=false';
-        }else if (filterType === 'completed'){
-            queryParams = '?is_completed=true';
-        }
-
-        document.querySelectorAll('[data-action="filter"]').forEach(btn=>{
-            btn.classList.remove('bg-blue-500','text-white');
-            btn.classList.add('bg-gray-200','text-gray-700');
-        });
-        target.classList.add('bg-blue-500','text-white');
-        target.classList.remove('bg-gray-200','text-gray-700');
-
-        fetchTasks(queryParams);
-    }
-    
     const fetchTasks = async (queryParams = '') => {
         const token = localStorage.getItem('accessToken');
-        if (!token) return;
+        if (!token) { 
+            navigateTo('/login'); 
+            return; 
+        }
         try {
-            const response = await fetch(`${API_URL}/tasks/${queryParams}`, { method: 'GET', headers: { 'Authorization': `Bearer ${token}` } });
-            if(response.status === 401){
-                forceLogout();
+            const response = await fetch(`${API_URL}/tasks/${queryParams}`, { 
+                method: 'GET', 
+                headers: { 'Authorization': `Bearer ${token}` } 
+            });
+            console.log('token being sent:',token);
+            if (response.status === 401 || response.status === 403) { return forceLogout(); }
+            if (!response.ok) throw new Error('Could not fetch tasks.');
+            
+            const responseText = await response.text();
+            let tasks;
+            try {
+                tasks = JSON.parse(responseText);
+            } catch (parseError) {
+                console.error('API returned HTML instead of JSON. Check your /api/tasks/ endpoint.');
+                renderTasks([]);
+                showToast('API configuration error. Please check server setup.', 'error');
                 return;
             }
-            if (!response.ok) throw new Error('Could not fetch tasks.');
-            const tasks = await response.json();
+            
             renderTasks(tasks);
         } catch (error) {
             console.error('Fetch tasks error:', error);
@@ -304,28 +442,30 @@ document.addEventListener('DOMContentLoaded', () => {
     const renderTasks = (tasks) => {
         const taskList = document.getElementById('task-list');
         if (!taskList) return;
+
         taskList.innerHTML = '';
         if (tasks.length === 0) {
             taskList.innerHTML = `
                 <div class="text-center col-span-full py-12">
-                    <svg class="mx-auto h-12 w-12 text-gray-400" xmlns="http://www.w3.org/2000/svg" 
-                        viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" 
-                        stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="12" cy="12" r="9"></circle>
-                        <line x1="12" y1="8" x2="12" y2="16"></line>
-                        <line x1="8" y1="12" x2="16" y2="12"></line>
+                    <svg class="mx-auto h-12 w-12 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                     </svg>
-                    <h3 class="mt-2 text-lg font-medium text-gray-900">No tasks yet</h3>
-                    <p class="mt-1 text-sm text-gray-500">Get started by creating your first task.</p>
+                    <h3 class="mt-2 text-lg font-medium text-gray-900">All caught up!</h3>
+                    <p class="mt-1 text-sm text-gray-500">You have no pending tasks. Good job!</p>
                 </div>
             `;
             return;
         }
+
         tasks.forEach(task => {
-            const priorityColors = { 'High': 'bg-red-100 text-red-800', 'Medium': 'bg-yellow-100 text-yellow-800', 'Low': 'bg-green-100 text-green-800' };
+            const priorityColors = { 
+                'High': 'bg-red-100 text-red-800', 
+                'Medium': 'bg-yellow-100 text-yellow-800', 
+                'Low': 'bg-green-100 text-green-800' 
+            };
+            
             const taskCard = `
-                <div class="bg-white rounded-lg shadow-md p-5 flex flex-col justify-between ${task.is_completed ? 'opacity-50 border-l-4 border-green-500' : 'border-l-4 border-gray-300'}
-                transition-all duration-300 ease-in-out hover:shadow-xl hover:scale-105">
+                <div class="bg-white rounded-lg shadow-md p-5 flex flex-col justify-between ${task.is_completed ? 'opacity-50 border-l-4 border-green-500' : 'border-l-4 border-gray-300'} transition-all duration-300 ease-in-out hover:shadow-xl hover:scale-105">
                     <div>
                         <div class="flex justify-between items-start">
                             <h5 class="text-lg font-bold text-gray-900 mb-2">${task.title}</h5>
@@ -341,29 +481,31 @@ document.addEventListener('DOMContentLoaded', () => {
                             <button class="transition-colors duration-200 text-xs bg-red-500 hover:bg-red-600 text-white font-bold py-1 px-3 rounded-full" data-action="delete" data-id="${task.id}">Delete</button>
                         </div>
                     </div>
-                </div>
-            `;
+                </div>`;
             taskList.innerHTML += taskCard;
         });
     };
 
-    modalCloseButton.addEventListener('click', closeModal);
-    modalCloseButtonX.addEventListener('click',closeModal);
-    // modalSaveButton.addEventListener('click', () => modalForm.requestSubmit());
-    cancelDeleteBtn.addEventListener('click',closeConfirmModal);
-    logoutButton.addEventListener('click', () => {
-        localStorage.clear();
-        logoutButton.classList.add('hidden');
-        loadView('login');
+    // Initialize modal listeners once at startup
+    initModalListeners();
+
+    if (logoutButton) {
+        logoutButton.addEventListener('click', () => {
+            localStorage.clear();
+            logoutButton.classList.add('hidden');
+            navigateTo('/login');
+        });
+    }
+
+    window.addEventListener('popstate', router);
+
+    document.body.addEventListener('click', e => {
+        const link = e.target.closest('a[data-link]');
+        if (link) {
+            e.preventDefault();
+            navigateTo(link.getAttribute('href'));
+        }
     });
 
-    
-
-    const token = localStorage.getItem('accessToken');
-    if (token) {
-        logoutButton.classList.remove('hidden');
-        loadView('dashboard');
-    } else {
-        loadView('login');
-    }
+    router();
 });
