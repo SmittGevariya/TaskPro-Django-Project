@@ -98,6 +98,115 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    // Password toggle functionality
+    const togglePasswordVisibility = (inputId, openEyeId, closedEyeId) => {
+        const input = document.getElementById(inputId);
+        const openEye = document.getElementById(openEyeId);
+        const closedEye = document.getElementById(closedEyeId);
+        
+        if (input && openEye && closedEye) {
+            if (input.type === 'password') {
+                input.type = 'text';
+                openEye.classList.add('hidden');
+                closedEye.classList.remove('hidden');
+            } else {
+                input.type = 'password';
+                openEye.classList.remove('hidden');
+                closedEye.classList.add('hidden');
+            }
+        }
+    };
+
+    // Password strength indicator
+    const updatePasswordStrength = () => {
+        const password = document.getElementById('register-password')?.value || '';
+        const strengthBars = document.querySelectorAll('#register-password-strength .h-1');
+        const strengthText = document.getElementById('password-strength-text');
+        
+        if (!strengthBars.length || !strengthText) return;
+        
+        let strength = 0;
+        let strengthLabel = '';
+        let strengthColor = '';
+        
+        // Reset bars
+        strengthBars.forEach(bar => {
+            bar.className = 'h-1 w-full bg-gray-200 rounded-full';
+        });
+        
+        if (password.length >= 8) strength++;
+        if (/[a-z]/.test(password)) strength++;
+        if (/[A-Z]/.test(password)) strength++;
+        if (/[0-9]/.test(password)) strength++;
+        if (/[^A-Za-z0-9]/.test(password)) strength++;
+        
+        // Update bars
+        for (let i = 0; i < strength; i++) {
+            if (strength <= 2) {
+                strengthBars[i].className = 'h-1 w-full bg-red-500 rounded-full';
+                strengthColor = 'text-red-500';
+            } else if (strength <= 3) {
+                strengthBars[i].className = 'h-1 w-full bg-yellow-500 rounded-full';
+                strengthColor = 'text-yellow-500';
+            } else {
+                strengthBars[i].className = 'h-1 w-full bg-green-500 rounded-full';
+                strengthColor = 'text-green-500';
+            }
+        }
+        
+        // Update text
+        if (password.length === 0) {
+            strengthLabel = 'Enter a password';
+            strengthColor = 'text-gray-500';
+        } else if (strength <= 2) {
+            strengthLabel = 'Weak password';
+        } else if (strength <= 3) {
+            strengthLabel = 'Fair password';
+        } else {
+            strengthLabel = 'Strong password';
+        }
+        
+        strengthText.textContent = strengthLabel;
+        strengthText.className = `text-xs mt-1 ${strengthColor}`;
+    };
+
+    // Password confirmation validation
+    const validatePasswordConfirmation = () => {
+        const password = document.getElementById('register-password')?.value || '';
+        const confirmPassword = document.getElementById('register-confirm-password')?.value || '';
+        const errorDiv = document.getElementById('register-confirm-password-error');
+        
+        if (!errorDiv) return;
+        
+        if (confirmPassword && password !== confirmPassword) {
+            errorDiv.textContent = 'Passwords do not match';
+            errorDiv.classList.remove('hidden');
+        } else {
+            errorDiv.classList.add('hidden');
+        }
+    };
+
+    // Form validation helpers
+    const showFieldError = (fieldId, message) => {
+        const errorDiv = document.getElementById(`${fieldId}-error`);
+        if (errorDiv) {
+            errorDiv.textContent = message;
+            errorDiv.classList.remove('hidden');
+        }
+    };
+
+    const hideFieldError = (fieldId) => {
+        const errorDiv = document.getElementById(`${fieldId}-error`);
+        if (errorDiv) {
+            errorDiv.classList.add('hidden');
+        }
+    };
+
+    const validateEmail = (email) => {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(email);
+    };
+
     const updateUserProfile = () => {
         const username = localStorage.getItem('username');
         const userAvatar = document.getElementById('user-avatar');
@@ -219,10 +328,40 @@ document.addEventListener('DOMContentLoaded', () => {
             if (loginForm) {
                 loginForm.addEventListener('submit', handleLogin);
             }
+            
+            // Password toggle functionality
+            const toggleLoginPassword = document.getElementById('toggle-login-password');
+            if (toggleLoginPassword) {
+                toggleLoginPassword.addEventListener('click', () => togglePasswordVisibility('login-password', 'login-eye-open', 'login-eye-closed'));
+            }
         } else if (viewName === 'register') {
             const registerForm = document.getElementById('register-form');
             if (registerForm) {
                 registerForm.addEventListener('submit', handleRegister);
+            }
+            
+            // Password toggle functionality
+            const toggleRegisterPassword = document.getElementById('toggle-register-password');
+            const toggleRegisterConfirmPassword = document.getElementById('toggle-register-confirm-password');
+            
+            if (toggleRegisterPassword) {
+                toggleRegisterPassword.addEventListener('click', () => togglePasswordVisibility('register-password', 'register-eye-open', 'register-eye-closed'));
+            }
+            
+            if (toggleRegisterConfirmPassword) {
+                toggleRegisterConfirmPassword.addEventListener('click', () => togglePasswordVisibility('register-confirm-password', 'register-confirm-eye-open', 'register-confirm-eye-closed'));
+            }
+            
+            // Password strength indicator
+            const passwordInput = document.getElementById('register-password');
+            if (passwordInput) {
+                passwordInput.addEventListener('input', updatePasswordStrength);
+            }
+            
+            // Password confirmation validation
+            const confirmPasswordInput = document.getElementById('register-confirm-password');
+            if (confirmPasswordInput) {
+                confirmPasswordInput.addEventListener('input', validatePasswordConfirmation);
             }
         } else if (viewName === 'dashboard') {
             // Refresh modal elements (but don't reattach listeners)
@@ -272,6 +411,21 @@ document.addEventListener('DOMContentLoaded', () => {
         const formData = new FormData(e.target);
         const data = Object.fromEntries(formData.entries());
         
+        // Clear previous errors
+        hideFieldError('username');
+        hideFieldError('password');
+        
+        // Basic validation
+        if (!data.username) {
+            showFieldError('username', 'Username is required');
+            return;
+        }
+        
+        if (!data.password) {
+            showFieldError('password', 'Password is required');
+            return;
+        }
+        
         try {
             const response = await fetch(`${API_URL}/auth/login/`, { 
                 method: 'POST', 
@@ -280,7 +434,14 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             const responseData = await response.json();
             
-            if (!response.ok) throw new Error(responseData.detail || 'Failed to login.');
+            if (!response.ok) {
+                if (response.status === 401) {
+                    showFieldError('password', 'Invalid username or password');
+                } else {
+                    throw new Error(responseData.detail || 'Failed to login.');
+                }
+                return;
+            }
             
             localStorage.setItem('accessToken', responseData.access);
             localStorage.setItem('refreshToken', responseData.refresh);
@@ -297,6 +458,52 @@ document.addEventListener('DOMContentLoaded', () => {
         const formData = new FormData(e.target);
         const data = Object.fromEntries(formData.entries());
         
+        // Clear previous errors
+        hideFieldError('register-username');
+        hideFieldError('register-email');
+        hideFieldError('register-password');
+        hideFieldError('register-confirm-password');
+        
+        let hasErrors = false;
+        
+        // Username validation
+        if (!data.username) {
+            showFieldError('register-username', 'Username is required');
+            hasErrors = true;
+        } else if (data.username.length < 3) {
+            showFieldError('register-username', 'Username must be at least 3 characters');
+            hasErrors = true;
+        }
+        
+        // Email validation
+        if (!data.email) {
+            showFieldError('register-email', 'Email is required');
+            hasErrors = true;
+        } else if (!validateEmail(data.email)) {
+            showFieldError('register-email', 'Please enter a valid email address');
+            hasErrors = true;
+        }
+        
+        // Password validation
+        if (!data.password) {
+            showFieldError('register-password', 'Password is required');
+            hasErrors = true;
+        } else if (data.password.length < 8) {
+            showFieldError('register-password', 'Password must be at least 8 characters');
+            hasErrors = true;
+        }
+        
+        // Confirm password validation
+        if (!data.confirm_password) {
+            showFieldError('register-confirm-password', 'Please confirm your password');
+            hasErrors = true;
+        } else if (data.password !== data.confirm_password) {
+            showFieldError('register-confirm-password', 'Passwords do not match');
+            hasErrors = true;
+        }
+        
+        if (hasErrors) return;
+        
         try {
             const response = await fetch(`${API_URL}/auth/register/`, { 
                 method: 'POST', 
@@ -306,10 +513,25 @@ document.addEventListener('DOMContentLoaded', () => {
             const responseData = await response.json();
             
             if (!response.ok) { 
-                const errorMessage = Object.entries(responseData)
-                    .map(([field, messages]) => `${field}: ${messages.join(', ')}`)
-                    .join(' | '); 
-                throw new Error(errorMessage); 
+                // Handle field-specific errors
+                if (responseData.username) {
+                    showFieldError('register-username', responseData.username.join(', '));
+                }
+                if (responseData.email) {
+                    showFieldError('register-email', responseData.email.join(', '));
+                }
+                if (responseData.password) {
+                    showFieldError('register-password', responseData.password.join(', '));
+                }
+                
+                // Show general error if no specific field errors
+                if (!responseData.username && !responseData.email && !responseData.password) {
+                    const errorMessage = Object.entries(responseData)
+                        .map(([field, messages]) => `${field}: ${messages.join(', ')}`)
+                        .join(' | '); 
+                    throw new Error(errorMessage);
+                }
+                return;
             }
             showToast('Registration successful! Please log in.');
             navigateTo('/login');
@@ -517,12 +739,14 @@ document.addEventListener('DOMContentLoaded', () => {
         taskList.innerHTML = '';
         if (tasks.length === 0) {
             taskList.innerHTML = `
-                <div class="text-center col-span-full py-12">
-                    <svg class="mx-auto h-12 w-12 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                    </svg>
-                    <h3 class="mt-2 text-lg font-medium text-gray-900">All caught up!</h3>
-                    <p class="mt-1 text-sm text-gray-500">You have no pending tasks. Good job!</p>
+                <div class="col-span-full flex flex-col items-center justify-center py-16 px-6">
+                    <div class="w-20 h-20 bg-gradient-to-br from-green-400 to-blue-500 rounded-full flex items-center justify-center mb-6 shadow-lg">
+                        <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-900 mb-2">All caught up!</h3>
+                    <p class="text-gray-600 text-center max-w-md">You have no pending tasks. Great job staying organized! 🎉</p>
                 </div>
             `;
             return;
@@ -530,32 +754,85 @@ document.addEventListener('DOMContentLoaded', () => {
 
         tasks.forEach(task => {
             const priorityColors = { 
-                'High': 'bg-red-100 text-red-800', 
-                'Medium': 'bg-yellow-100 text-yellow-800', 
-                'Low': 'bg-green-100 text-green-800' 
+                'High': 'bg-red-500 text-white', 
+                'Medium': 'bg-yellow-500 text-white', 
+                'Low': 'bg-green-500 text-white' 
+            };
+            
+            const priorityIcons = {
+                'High': '🔴',
+                'Medium': '🟡', 
+                'Low': '🟢'
             };
             
             const taskCard = `
-                <div class="bg-white rounded-lg shadow-md p-5 flex flex-col justify-between ${task.is_completed ? 'opacity-50 border-l-4 border-green-500' : 'border-l-4 border-gray-300'} transition-all duration-300 ease-in-out hover:shadow-xl hover:scale-105">
-                    <div>
-                        <div class="flex justify-between items-start">
-                            <h5 class="text-lg font-bold text-gray-900 mb-2">${task.title}</h5>
-                            <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full ${priorityColors[task.priority] || 'bg-gray-100 text-gray-800'}">${task.priority}</span>
-                        </div>
-                        <p class="text-gray-600 text-sm mb-4">${task.description || ''}</p>
+                <div class="group bg-white rounded-xl shadow-md hover:shadow-lg p-6 transition-all duration-300 ease-in-out hover:scale-105 hover:-translate-y-1 ${task.is_completed ? 'opacity-75 border-l-4 border-green-500' : 'border-l-4 border-gray-200'} relative overflow-hidden">
+                    <!-- Header with Title and Priority -->
+                    <div class="flex justify-between items-start mb-4">
+                        <h3 class="text-xl font-bold text-gray-900 leading-tight ${task.is_completed ? 'line-through text-gray-500' : ''}">
+                            ${task.title}
+                        </h3>
+                        <span class="flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full ${priorityColors[task.priority] || 'bg-gray-500 text-white'} shadow-sm">
+                            <span class="text-xs">${priorityIcons[task.priority] || '⚪'}</span>
+                            ${task.priority}
+                        </span>
                     </div>
-                    <div class="border-t pt-4 mt-4 flex justify-between items-center">
-                        <p class="text-sm text-gray-500">Due: ${task.due_date}</p>
-                        <div class="flex items-center space-x-2">
-                            <button class="transition-colors duration-200 text-xs bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-1 px-3 rounded-full" data-action="edit" data-id="${task.id}">Edit</button>
-                            <button class="transition-colors duration-200 text-xs bg-green-500 hover:bg-green-600 text-white font-bold py-1 px-3 rounded-full disabled:opacity-50" data-action="complete" data-id="${task.id}" ${task.is_completed ? 'disabled' : ''}>Done</button>
-                            <button class="transition-colors duration-200 text-xs bg-red-500 hover:bg-red-600 text-white font-bold py-1 px-3 rounded-full" data-action="delete" data-id="${task.id}">Delete</button>
-                        </div>
+                    
+                    <!-- Description -->
+                    <p class="text-gray-600 text-sm mb-6 leading-relaxed ${task.is_completed ? 'line-through text-gray-400' : ''}">
+                        ${task.description || 'No description provided'}
+                    </p>
+                    
+                    <!-- Due Date -->
+                    <div class="flex items-center gap-2 mb-6 text-sm text-gray-500">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                        <span class="font-medium">Due: ${task.due_date}</span>
+                    </div>
+                    
+                    <!-- Action Buttons -->
+                    <div class="flex items-center justify-end gap-2 pt-4 border-t border-gray-100">
+                        ${!task.is_completed ? `
+                        <button 
+                            class="group/edit flex items-center gap-1.5 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-full transition-all duration-200 hover:scale-105 hover:shadow-md" 
+                            data-action="edit" 
+                            data-id="${task.id}"
+                            title="Edit task"
+                        >
+                            <span class="text-sm">✏️</span>
+                            <span class="hidden sm:inline">Edit</span>
+                        </button>
+                        ` : ''}
+                        
+                        ${!task.is_completed ? `
+                        <button 
+                            class="group/complete flex items-center gap-1.5 px-4 py-2 bg-green-500 hover:bg-green-600 text-white text-sm font-medium rounded-full transition-all duration-200 hover:scale-105 hover:shadow-md" 
+                            data-action="complete" 
+                            data-id="${task.id}"
+                            title="Mark as complete"
+                        >
+                            <span class="text-sm">✅</span>
+                            <span class="hidden sm:inline">Complete</span>
+                        </button>
+                        ` : ''}
+                        
+                        <button 
+                            class="group/delete flex items-center gap-1.5 px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-medium rounded-full transition-all duration-200 hover:scale-105 hover:shadow-md" 
+                            data-action="delete" 
+                            data-id="${task.id}"
+                            title="Delete task"
+                        >
+                            <span class="text-sm">❌</span>
+                            <span class="hidden sm:inline">Delete</span>
+                        </button>
                     </div>
                 </div>`;
             taskList.innerHTML += taskCard;
         });
     };
+    
+    
 
     const filterTasks = () => {
         const searchTerm = document.getElementById('task-search')?.value.toLowerCase() || '';

@@ -3,20 +3,80 @@
         <h2 class="text-2xl font-bold text-center text-gray-800 mb-6">Welcome Back!</h2>
         <form id="login-form">
             <div id="login-error" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4 hidden" role="alert"></div>
+            
+            <!-- Username Field -->
             <div class="mb-4">
                 <label for="login-username" class="block text-gray-700 text-sm font-bold mb-2">Username</label>
-                <input type="text" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500" id="login-username" name="username" required>
+                <input 
+                    type="text" 
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 shadow-sm hover:shadow-md" 
+                    id="login-username" 
+                    name="username" 
+                    required
+                    aria-label="Username"
+                    aria-describedby="username-error"
+                >
+                <div id="username-error" class="text-red-500 text-xs mt-1 hidden"></div>
             </div>
-            <div class="mb-6">
+            
+            <!-- Password Field with Toggle -->
+            <div class="mb-4">
                 <label for="login-password" class="block text-gray-700 text-sm font-bold mb-2">Password</label>
-                <input type="password" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500" id="login-password" name="password" required>
+                <div class="relative">
+                    <input 
+                        type="password" 
+                        class="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 shadow-sm hover:shadow-md" 
+                        id="login-password" 
+                        name="password" 
+                        required
+                        aria-label="Password"
+                        aria-describedby="password-error"
+                    >
+                    <button 
+                        type="button" 
+                        class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 focus:outline-none"
+                        id="toggle-login-password"
+                        aria-label="Toggle password visibility"
+                    >
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" id="login-eye-open">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                        </svg>
+                        <svg class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24" id="login-eye-closed">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21"></path>
+                        </svg>
+                    </button>
+                </div>
+                <div id="password-error" class="text-red-500 text-xs mt-1 hidden"></div>
             </div>
-            <button type="submit" class="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+            
+            <!-- Remember Me Checkbox -->
+            <div class="mb-6">
+                <label class="flex items-center">
+                    <input 
+                        type="checkbox" 
+                        class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50" 
+                        id="remember-me" 
+                        name="remember_me"
+                        aria-label="Remember me"
+                    >
+                    <span class="ml-2 text-sm text-gray-700">Remember me</span>
+                </label>
+            </div>
+            
+            <!-- Login Button -->
+            <button 
+                type="submit" 
+                class="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                aria-label="Login to your account"
+            >
                 Login
             </button>
         </form>
-        <p class="text-center text-gray-600 text-sm mt-6">
-            Don't have an account? <a href="/register" data-link id="show-register" class="font-bold text-blue-600 hover:text-blue-800">Register here</a>
+        
+        <!-- Register Link -->
+        <p class="text-center text-gray-600 text-sm mt-8">
+            Don't have an account? <a href="/register" data-link id="show-register" class="font-bold text-blue-600 hover:text-blue-800 transition-colors duration-200">Register here</a>
         </p>
     </div>
 </div>

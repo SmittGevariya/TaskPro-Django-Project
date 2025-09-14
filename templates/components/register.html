@@ -3,24 +3,122 @@
         <h2 class="text-2xl font-bold text-center text-gray-800 mb-6">Create Your Account</h2>
         <form id="register-form">
             <div id="register-error" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4 hidden" role="alert"></div>
+            
+            <!-- Username Field -->
             <div class="mb-4">
                 <label for="register-username" class="block text-gray-700 text-sm font-bold mb-2">Username</label>
-                <input type="text" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500" id="register-username" name="username" required>
+                <input 
+                    type="text" 
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 shadow-sm hover:shadow-md" 
+                    id="register-username" 
+                    name="username" 
+                    required
+                    aria-label="Username"
+                    aria-describedby="register-username-error"
+                >
+                <div id="register-username-error" class="text-red-500 text-xs mt-1 hidden"></div>
             </div>
+            
+            <!-- Email Field -->
             <div class="mb-4">
                 <label for="register-email" class="block text-gray-700 text-sm font-bold mb-2">Email Address</label>
-                <input type="email" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500" id="register-email" name="email" required>
+                <input 
+                    type="email" 
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 shadow-sm hover:shadow-md" 
+                    id="register-email" 
+                    name="email" 
+                    required
+                    aria-label="Email address"
+                    aria-describedby="register-email-error"
+                >
+                <div id="register-email-error" class="text-red-500 text-xs mt-1 hidden"></div>
             </div>
-            <div class="mb-6">
+            
+            <!-- Password Field with Toggle -->
+            <div class="mb-4">
                 <label for="register-password" class="block text-gray-700 text-sm font-bold mb-2">Password</label>
-                <input type="password" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500" id="register-password" name="password" required>
+                <div class="relative">
+                    <input 
+                        type="password" 
+                        class="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 shadow-sm hover:shadow-md" 
+                        id="register-password" 
+                        name="password" 
+                        required
+                        aria-label="Password"
+                        aria-describedby="register-password-error register-password-strength"
+                    >
+                    <button 
+                        type="button" 
+                        class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 focus:outline-none"
+                        id="toggle-register-password"
+                        aria-label="Toggle password visibility"
+                    >
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" id="register-eye-open">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                        </svg>
+                        <svg class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24" id="register-eye-closed">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21"></path>
+                        </svg>
+                    </button>
+                </div>
+                <div id="register-password-error" class="text-red-500 text-xs mt-1 hidden"></div>
+                <!-- Password Strength Indicator -->
+                <div id="register-password-strength" class="mt-2">
+                    <div class="flex space-x-1">
+                        <div class="h-1 w-full bg-gray-200 rounded-full"></div>
+                        <div class="h-1 w-full bg-gray-200 rounded-full"></div>
+                        <div class="h-1 w-full bg-gray-200 rounded-full"></div>
+                        <div class="h-1 w-full bg-gray-200 rounded-full"></div>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1" id="password-strength-text">Enter a password</p>
+                </div>
             </div>
-            <button type="submit" class="w-full bg-green-500 text-white font-bold py-2 px-4 rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+            
+            <!-- Confirm Password Field -->
+            <div class="mb-6">
+                <label for="register-confirm-password" class="block text-gray-700 text-sm font-bold mb-2">Confirm Password</label>
+                <div class="relative">
+                    <input 
+                        type="password" 
+                        class="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 shadow-sm hover:shadow-md" 
+                        id="register-confirm-password" 
+                        name="confirm_password" 
+                        required
+                        aria-label="Confirm password"
+                        aria-describedby="register-confirm-password-error"
+                    >
+                    <button 
+                        type="button" 
+                        class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 focus:outline-none"
+                        id="toggle-register-confirm-password"
+                        aria-label="Toggle confirm password visibility"
+                    >
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" id="register-confirm-eye-open">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                        </svg>
+                        <svg class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24" id="register-confirm-eye-closed">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21"></path>
+                        </svg>
+                    </button>
+                </div>
+                <div id="register-confirm-password-error" class="text-red-500 text-xs mt-1 hidden"></div>
+            </div>
+            
+            <!-- Register Button -->
+            <button 
+                type="submit" 
+                class="w-full bg-green-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                aria-label="Create your account"
+            >
                 Create Account
             </button>
         </form>
-        <p class="text-center text-gray-600 text-sm mt-6">
-            Already have an account? <a href="/login" data-link id="show-login" class="font-bold text-blue-600 hover:text-blue-800">Login here</a>
+        
+        <!-- Login Link -->
+        <p class="text-center text-gray-600 text-sm mt-8">
+            Already have an account? <a href="/login" data-link id="show-login" class="font-bold text-blue-600 hover:text-blue-800 transition-colors duration-200">Login here</a>
         </p>
     </div>
 </div>
