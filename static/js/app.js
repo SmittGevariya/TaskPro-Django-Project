@@ -1,9 +1,11 @@
 document.addEventListener('DOMContentLoaded', () => {
     const appContent = document.getElementById('app-content');
     const logoutButton = document.getElementById('logout-button');
+    const userProfileSection = document.getElementById('user-profile-section');
     const API_URL = 'http://127.0.0.1:8000/api';
     let taskModal, modalForm, modalTitle, modalSaveButton, modalCloseButton, taskIdInput, confirmModal, confirmDeleteBtn, cancelDeleteBtn, modalCloseButtonX;
     let modalListenersAttached = false;
+    let allTasks = []; // Store all tasks for filtering
 
     const getModalElements = () => {
         taskModal = document.getElementById('task-modal');
@@ -96,9 +98,59 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    const updateUserProfile = () => {
+        const username = localStorage.getItem('username');
+        const userAvatar = document.getElementById('user-avatar');
+        const userName = document.getElementById('user-name');
+        
+        if (username) {
+            // Generate initials from username
+            const initials = username.charAt(0).toUpperCase();
+            if (userAvatar) {
+                userAvatar.textContent = initials;
+            }
+            if (userName) {
+                userName.textContent = username;
+            }
+        }
+    };
+
+    const toggleProfileDropdown = () => {
+        const dropdown = document.getElementById('profile-dropdown');
+        const arrow = document.getElementById('dropdown-arrow');
+        
+        if (dropdown && arrow) {
+            const isVisible = !dropdown.classList.contains('opacity-0');
+            
+            if (isVisible) {
+                // Hide dropdown
+                dropdown.classList.add('opacity-0', 'invisible', 'scale-95');
+                dropdown.classList.remove('scale-100');
+                arrow.style.transform = 'rotate(0deg)';
+            } else {
+                // Show dropdown
+                dropdown.classList.remove('opacity-0', 'invisible', 'scale-95');
+                dropdown.classList.add('scale-100');
+                arrow.style.transform = 'rotate(180deg)';
+            }
+        }
+    };
+
+    const closeProfileDropdown = () => {
+        const dropdown = document.getElementById('profile-dropdown');
+        const arrow = document.getElementById('dropdown-arrow');
+        
+        if (dropdown && arrow) {
+            dropdown.classList.add('opacity-0', 'invisible', 'scale-95');
+            dropdown.classList.remove('scale-100');
+            arrow.style.transform = 'rotate(0deg)';
+        }
+    };
+
     const forceLogout = () => { 
         localStorage.clear(); 
-        if (logoutButton) logoutButton.classList.add('hidden'); 
+        if (logoutButton) logoutButton.classList.add('hidden');
+        if (userProfileSection) userProfileSection.classList.add('hidden'); 
         navigateTo('/login'); 
         showToast('Your session has expired.', 'error'); 
     };
@@ -121,11 +173,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const token = localStorage.getItem('accessToken');
         
-        // Manage logout button visibility based on authentication state
-        if (token && logoutButton) {
-            logoutButton.classList.remove('hidden');
-        } else if (!token && logoutButton) {
-            logoutButton.classList.add('hidden');
+        // Manage logout button and user profile section visibility based on authentication state
+        if (token) {
+            if (logoutButton) logoutButton.classList.remove('hidden');
+            if (userProfileSection) {
+                userProfileSection.classList.remove('hidden');
+                updateUserProfile();
+            }
+        } else {
+            if (logoutButton) logoutButton.classList.add('hidden');
+            if (userProfileSection) userProfileSection.classList.add('hidden');
         }
         
         if (match.view === 'dashboard' && !token) { 
@@ -185,6 +242,18 @@ document.addEventListener('DOMContentLoaded', () => {
             const filterContainer = document.getElementById('filter-container');
             if (filterContainer) {
                 filterContainer.addEventListener('click', handleFilterClick);
+            }
+
+            // Search functionality
+            const searchInput = document.getElementById('task-search');
+            if (searchInput) {
+                searchInput.addEventListener('input', filterTasks);
+            }
+
+            // Priority filter
+            const priorityFilter = document.getElementById('priority-filter');
+            if (priorityFilter) {
+                priorityFilter.addEventListener('change', filterTasks);
             }
 
             // Set user greeting
@@ -356,19 +425,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const handleFilterClick = (e) => {
         const target = e.target;
         if (target.dataset.action !== 'filter') return;
-        const filterType = target.dataset.filter;
 
-        let queryParams = '';
-        if (filterType === 'pending') queryParams = '?is_completed=false';
-        else if (filterType === 'completed') queryParams = '?is_completed=true';
-
+        // Update button styles
         document.querySelectorAll('[data-action="filter"]').forEach(btn => {
             btn.classList.remove('bg-blue-500', 'text-white');
             btn.classList.add('bg-gray-200', 'text-gray-700');
         });
         target.classList.add('bg-blue-500', 'text-white');
         target.classList.remove('bg-gray-200', 'text-gray-700');
-        fetchTasks(queryParams);
+
+        // Apply filters
+        filterTasks();
     };
 
     const markTaskComplete = async (taskId) => {
@@ -407,18 +474,17 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    const fetchTasks = async (queryParams = '') => {
+    const fetchTasks = async () => {
         const token = localStorage.getItem('accessToken');
         if (!token) { 
             navigateTo('/login'); 
             return; 
         }
         try {
-            const response = await fetch(`${API_URL}/tasks/${queryParams}`, { 
+            const response = await fetch(`${API_URL}/tasks/`, { 
                 method: 'GET', 
                 headers: { 'Authorization': `Bearer ${token}` } 
             });
-            console.log('token being sent:',token);
             if (response.status === 401 || response.status === 403) { return forceLogout(); }
             if (!response.ok) throw new Error('Could not fetch tasks.');
             
@@ -439,9 +505,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    const renderTasks = (tasks) => {
+    const renderTasks = (tasks, isFiltered = false) => {
         const taskList = document.getElementById('task-list');
         if (!taskList) return;
+
+        // Only store all tasks when not filtering (i.e., when called from fetchTasks)
+        if (!isFiltered) {
+            allTasks = tasks;
+        }
 
         taskList.innerHTML = '';
         if (tasks.length === 0) {
@@ -486,16 +557,79 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
+    const filterTasks = () => {
+        const searchTerm = document.getElementById('task-search')?.value.toLowerCase() || '';
+        const priorityFilter = document.getElementById('priority-filter')?.value || 'all';
+        const statusFilter = document.querySelector('[data-action="filter"].bg-blue-500')?.dataset.filter || 'all';
+
+        let filteredTasks = [...allTasks]; // Create a copy to avoid mutating original array
+
+        // Filter by search term
+        if (searchTerm) {
+            filteredTasks = filteredTasks.filter(task => 
+                task.title.toLowerCase().includes(searchTerm)
+            );
+        }
+
+        // Filter by priority
+        if (priorityFilter !== 'all') {
+            filteredTasks = filteredTasks.filter(task => 
+                task.priority === priorityFilter
+            );
+        }
+
+        // Filter by status
+        if (statusFilter === 'pending') {
+            filteredTasks = filteredTasks.filter(task => !task.is_completed);
+        } else if (statusFilter === 'completed') {
+            filteredTasks = filteredTasks.filter(task => task.is_completed);
+        }
+
+        renderTasks(filteredTasks, true);
+    };
+
     // Initialize modal listeners once at startup
     initModalListeners();
 
+    // Logout button event listener
     if (logoutButton) {
         logoutButton.addEventListener('click', () => {
             localStorage.clear();
-            logoutButton.classList.add('hidden');
+            if (logoutButton) logoutButton.classList.add('hidden');
+            if (userProfileSection) userProfileSection.classList.add('hidden');
             navigateTo('/login');
         });
     }
+
+    // Profile dropdown event listeners
+    const profileDropdownBtn = document.getElementById('profile-dropdown-btn');
+    const profileLogoutBtn = document.getElementById('profile-logout-btn');
+    
+    if (profileDropdownBtn) {
+        profileDropdownBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleProfileDropdown();
+        });
+    }
+
+    if (profileLogoutBtn) {
+        profileLogoutBtn.addEventListener('click', () => {
+            localStorage.clear();
+            if (logoutButton) logoutButton.classList.add('hidden');
+            if (userProfileSection) userProfileSection.classList.add('hidden');
+            navigateTo('/login');
+        });
+    }
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+        const dropdown = document.getElementById('profile-dropdown');
+        const dropdownBtn = document.getElementById('profile-dropdown-btn');
+        
+        if (dropdown && dropdownBtn && !dropdownBtn.contains(e.target) && !dropdown.contains(e.target)) {
+            closeProfileDropdown();
+        }
+    });
 
     window.addEventListener('popstate', router);
 

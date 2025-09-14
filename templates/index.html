@@ -16,10 +16,47 @@
     {% load static %}
 </head>
 <body class="bg-gray-100">
-    <nav class="bg-white shadow-md">
+    <nav class="bg-white shadow-md sticky top-0 z-50">
         <div class="container mx-auto px-6 py-3 flex justify-between items-center">
             <a class="text-xl font-bold text-gray-800 ps-3" href="#">TaskPro</a>
-            <button id="logout-button" class="bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 hidden">Logout</button>
+            
+            <!-- Right side navigation -->
+            <div class="flex items-center space-x-4">
+                
+                <!-- User Profile Section -->
+                <div id="user-profile-section" class="hidden relative">
+                    <button id="profile-dropdown-btn" class="flex items-center space-x-2 text-gray-700 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded-lg p-2 transition-all duration-200">
+                        <!-- Avatar -->
+                        <div id="user-avatar" class="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-semibold">
+                            <!-- Initials will be inserted here -->
+                        </div>
+                        <!-- Username -->
+                        <span id="user-name" class="text-sm font-medium">
+                            <!-- Username will be inserted here -->
+                        </span>
+                        <!-- Dropdown Arrow -->
+                        <svg class="w-4 h-4 transition-transform duration-200" id="dropdown-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                        </svg>
+                    </button>
+                    
+                    <!-- Dropdown Menu -->
+                    <div id="profile-dropdown" class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 opacity-0 invisible transition-all duration-200 transform scale-95 origin-top-right">
+                        <div class="py-1">
+                            <button class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-150 cursor-not-allowed opacity-50" disabled>
+                                Profile
+                            </button>
+                            <button class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-150 cursor-not-allowed opacity-50" disabled>
+                                Settings
+                            </button>
+                            <hr class="my-1">
+                            <button id="profile-logout-btn" class="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors duration-150">
+                                Logout
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </nav>
 
