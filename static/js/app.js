@@ -66,6 +66,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }).showToast();
     };
 
+    const forceLogout = () => {
+        localStorage.clear();
+        logoutButton.classList.add('hidden');
+        loadView('login');
+        showToast('Your session has expired. Please log in again.','error');
+    };
+
     const loadView = async (viewName) => {
         try {
             const response = await fetch(`/components/${viewName}/`);
@@ -158,6 +165,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const token = localStorage.getItem('accessToken');
         try {
             const response = await fetch(`${API_URL}/tasks/${taskId}/`, { headers: { 'Authorization': `Bearer ${token}` } });
+            if(response.status===401){forceLogout();return;}
             if (!response.ok) throw new Error('Task not found');
             const task = await response.json();
             
@@ -190,6 +198,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify(data)
             });
+            if(response.status===401){forceLogout();return;}
             if (!response.ok) { const errData = await response.json(); throw new Error(JSON.stringify(errData)); };
             closeModal();
             fetchTasks();
@@ -230,6 +239,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify({ is_completed: true })
             });
+            if(response.status===401){forceLogout();return;}
             if (!response.ok) throw new Error('Failed to update task.');
             fetchTasks();
             showToast('Task marked as complete!')
@@ -242,6 +252,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const token = localStorage.getItem('accessToken');
         try {
             const response = await fetch(`${API_URL}/tasks/${taskId}/`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
+            if(response.status===401){forceLogout();return;}
             if (!response.ok) throw new Error('Failed to delete task.');
             fetchTasks();
             showToast('Task deleted successfully.');
@@ -278,6 +289,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!token) return;
         try {
             const response = await fetch(`${API_URL}/tasks/${queryParams}`, { method: 'GET', headers: { 'Authorization': `Bearer ${token}` } });
+            if(response.status === 401){
+                forceLogout();
+                return;
+            }
             if (!response.ok) throw new Error('Could not fetch tasks.');
             const tasks = await response.json();
             renderTasks(tasks);
