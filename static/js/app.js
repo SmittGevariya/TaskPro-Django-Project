@@ -290,7 +290,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const routes = [
             { path: "/login", view: 'login' }, 
             { path: "/register", view: 'register' }, 
-            { path: "/", view: 'dashboard' }
+            { path: "/", view: 'dashboard' },
+            { path: "/profile", view: 'profile' }
         ];
         let match = routes.find(route => route.path === location.pathname);
         if (!match) { 
@@ -424,6 +425,13 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             fetchTasks();
+        } else if (viewName === 'profile') {
+            // Attach submit handler and fetch current profile
+            const profileForm = document.getElementById('profile-form');
+            if (profileForm) {
+                profileForm.addEventListener('submit', handleProfileSubmit);
+            }
+            fetchProfileAndPopulate();
         }
     };
 
@@ -473,6 +481,60 @@ document.addEventListener('DOMContentLoaded', () => {
             showToast(error.message, 'error'); 
         }
     };
+
+    const fetchProfileAndPopulate = async () => {
+        const token = localStorage.getItem('accessToken');
+        if (!token) { return navigateTo('/login'); }
+        try {
+            const response = await fetch(`${API_URL}/auth/profile/`, {
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('accessToken')}` 
+                }
+            });
+            if (response.status === 401 || response.status === 403) { return forceLogout(); }
+            // if (!response.ok) throw new Error('Failed to load profile');
+            const contentType = response.headers.get("content-type");
+            if (!contentType || !contentType.includes("application/json")) {
+                throw new Error("Invalid response from server");
+            }
+            const data = await response.json();
+            document.getElementById('profile-username')?.setAttribute('value', data.username || '');
+            document.getElementById('profile-first-name')?.setAttribute('value', data.first_name || '');
+            document.getElementById('profile-last-name')?.setAttribute('value', data.last_name || '');
+            document.getElementById('profile-email')?.setAttribute('value', data.email || '');
+        } catch (error) {
+            showToast(error.message, 'error');
+        }
+    };
+
+        const handleProfileSubmit = async (e) => {
+            e.preventDefault();
+            const token = localStorage.getItem('accessToken');
+            if (!token) { return navigateTo('/login'); }
+            const form = e.target;
+            const formData = new FormData(form);
+            const payload = Object.fromEntries(formData.entries());
+            try {
+                const response = await fetch(`${API_URL}/auth/profile/`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify(payload)
+                });
+                if (response.status === 401 || response.status === 403) { return forceLogout(); }
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data?.detail || 'Failed to update profile');
+                }
+                if (data?.username) {
+                    localStorage.setItem('username', data.username);
+                    updateUserProfile();
+                }
+                showToast('Profile updated successfully!');
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        };
 
     const handleRegister = async (e) => {
         e.preventDefault();
@@ -571,6 +633,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const handleEditClick = async (taskId) => {
         const token = localStorage.getItem('accessToken');
+        console.log("Access token:", token);
         try {
             const response = await fetch(`${API_URL}/tasks/${taskId}/`, { 
                 headers: { 'Authorization': `Bearer ${token}` } 
@@ -1033,6 +1096,13 @@ document.addEventListener('DOMContentLoaded', () => {
             navigateTo(link.getAttribute('href'));
         }
     });
+
+    const profileBtn = document.getElementById('profile-btn');
+    if (profileBtn) {
+        profileBtn.addEventListener('click', () => {
+            navigateTo('/profile');
+        });
+}
 
     router();
 });

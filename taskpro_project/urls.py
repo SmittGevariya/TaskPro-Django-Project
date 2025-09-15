@@ -26,6 +26,7 @@ urlpatterns = [
     path('components/login/',TemplateView.as_view(template_name='components/login.html'),name='component-login'),
     path('components/register/',TemplateView.as_view(template_name='components/register.html'),name='component-register'),
     path('components/dashboard/',TemplateView.as_view(template_name='components/dashboard.html'),name='component-dashboard'),
+    path('components/profile/',TemplateView.as_view(template_name='components/profile.html'),name='component-profile'),
 
     re_path(r'^(?:.*)/?$',TemplateView.as_view(template_name='index.html'),name='home'),
 ]
