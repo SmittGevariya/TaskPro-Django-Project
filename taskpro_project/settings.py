@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 from pathlib import Path
 from decouple import config
 import os
+from django import contrib
 from dotenv import load_dotenv
 import rest_framework
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -146,4 +147,9 @@ REST_FRAMEWORK={
 
 STATICFILES_DIRS=[
     BASE_DIR / 'static',
+]
+
+AUTHENTICATION_BACKENDS=[
+    'users.backends.EmailOrUsernameBackend',
+    'django.contrib.auth.backends.ModelBackend',
 ]
