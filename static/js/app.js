@@ -209,13 +209,28 @@ document.addEventListener('DOMContentLoaded', () => {
         return emailRegex.test(email);
     };
 
+    const fetchAndCacheUserProfile = async () => {
+        const token = localStorage.getItem('accessToken');
+        if (!token) return null;
+        try {
+            const response = await fetch(`${API_URL}/auth/me/`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!response.ok) return null;
+            const profile = await response.json();
+            if (profile?.username) {
+                localStorage.setItem('username', profile.username);
+            }
+            return profile;
+        } catch (e) { return null; }
+    };
+
     const updateUserProfile = () => {
         const username = localStorage.getItem('username');
         const userAvatar = document.getElementById('user-avatar');
         const userName = document.getElementById('user-name');
         
         if (username) {
-            // Generate initials from username
             const initials = username.charAt(0).toUpperCase();
             if (userAvatar) {
                 userAvatar.textContent = initials;
@@ -289,6 +304,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (logoutButton) logoutButton.classList.remove('hidden');
             if (userProfileSection) {
                 userProfileSection.classList.remove('hidden');
+                // Ensure we display server-verified username (not raw input)
+                if (!localStorage.getItem('username')) {
+                    await fetchAndCacheUserProfile();
+                }
                 updateUserProfile();
             }
         } else {
@@ -447,8 +466,8 @@ document.addEventListener('DOMContentLoaded', () => {
             
             localStorage.setItem('accessToken', responseData.access);
             localStorage.setItem('refreshToken', responseData.refresh);
-            localStorage.setItem('username', data.username);
-            
+            // Fetch actual profile to get canonical username
+            await fetchAndCacheUserProfile();
             navigateTo('/');
         } catch (error) { 
             showToast(error.message, 'error'); 
