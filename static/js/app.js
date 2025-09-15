@@ -3,7 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const logoutButton = document.getElementById('logout-button');
     const userProfileSection = document.getElementById('user-profile-section');
     const API_URL = 'http://127.0.0.1:8000/api';
-    let taskModal, modalForm, modalTitle, modalSaveButton, modalCloseButton, taskIdInput, confirmModal, confirmDeleteBtn, cancelDeleteBtn, modalCloseButtonX;
+    let taskModal, modalForm, modalTitle, modalSaveButton, modalCloseButton, taskIdInput, confirmModal, confirmDeleteBtn, cancelDeleteBtn, modalCloseButtonX, modalCompleteButton;
     let modalListenersAttached = false;
     let allTasks = []; // Store all tasks for filtering
 
@@ -18,6 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
         confirmDeleteBtn = document.getElementById('confirm-delete-btn');
         cancelDeleteBtn = document.getElementById('cancel-delete-btn');
         modalCloseButtonX = document.getElementById('modal-close-button-x');
+        modalCompleteButton = document.getElementById('modal-complete-button');
     };
 
     const initModalListeners = () => {
@@ -36,6 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
             cancelDeleteBtn.addEventListener('click', closeConfirmModal);
             confirmDeleteBtn.addEventListener('click', handleConfirmDelete);
             modalForm.addEventListener('submit', handleModalFormSubmit);
+            modalCompleteButton.addEventListener('click', handleModalCompleteClick);
             modalListenersAttached = true;
         }
     };
@@ -543,6 +545,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const handleAddTaskClick = () => {
         if (modalForm) modalForm.reset();
         if (taskIdInput) taskIdInput.value = '';
+        if (modalCompleteButton) modalCompleteButton.dataset.id = '';
         if (modalTitle) modalTitle.textContent = 'Add New Task';
         openTaskModal();
     };
@@ -559,6 +562,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const task = await response.json();
 
             if (taskIdInput) taskIdInput.value = task.id;
+            if (modalCompleteButton) modalCompleteButton.dataset.id = task.id;
             
             const modalTaskTitle = document.getElementById('modal-task-title');
             const modalTaskDescription = document.getElementById('modal-task-description');
@@ -641,6 +645,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 closeConfirmModal();
                 delete confirmDeleteBtn.dataset.taskIdToDelete;
             }
+        }
+    };
+
+    const handleModalCompleteClick = () => {
+        const taskId = modalCompleteButton?.dataset.id;
+        if (taskId) {
+            markTaskComplete(taskId);
+            closeTaskModal();
         }
     };
 
@@ -738,6 +750,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
         taskList.innerHTML = '';
         if (tasks.length === 0) {
+            const statusFilter = document.querySelector('[data-action="filter"].bg-blue-500')?.dataset.filter || 'all';
+            let emptyMessage = '';
+            let emptyTitle = '';
+            
+            if (statusFilter === 'pending') {
+                emptyTitle = 'All caught up!';
+                emptyMessage = 'You have no pending tasks.';
+            } else if (statusFilter === 'completed') {
+                emptyTitle = 'No completed tasks yet!';
+                emptyMessage = 'Finish some tasks to see them here.';
+            } else {
+                emptyTitle = 'All caught up!';
+                emptyMessage = 'You have no pending tasks.';
+            }
+            
             taskList.innerHTML = `
                 <div class="col-span-full flex flex-col items-center justify-center py-16 px-6">
                     <div class="w-20 h-20 bg-gradient-to-br from-green-400 to-blue-500 rounded-full flex items-center justify-center mb-6 shadow-lg">
@@ -745,8 +772,8 @@ document.addEventListener('DOMContentLoaded', () => {
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                         </svg>
                     </div>
-                    <h3 class="text-2xl font-bold text-gray-900 mb-2">All caught up!</h3>
-                    <p class="text-gray-600 text-center max-w-md">You have no pending tasks. Great job staying organized! 🎉</p>
+                    <h3 class="text-2xl font-bold text-gray-900 mb-2">${emptyTitle}</h3>
+                    <p class="text-gray-600 text-center max-w-md">${emptyMessage}</p>
                 </div>
             `;
             return;
@@ -795,7 +822,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="flex items-center justify-end gap-2 pt-4 border-t border-gray-100">
                         ${!task.is_completed ? `
                         <button 
-                            class="group/edit flex items-center gap-1.5 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-full transition-all duration-200 hover:scale-105 hover:shadow-md" 
+                            class="group/edit flex items-center gap-1.5 px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 text-sm font-medium rounded-lg transition-all duration-200 hover:scale-105 hover:shadow-md" 
                             data-action="edit" 
                             data-id="${task.id}"
                             title="Edit task"
@@ -805,25 +832,13 @@ document.addEventListener('DOMContentLoaded', () => {
                         </button>
                         ` : ''}
                         
-                        ${!task.is_completed ? `
                         <button 
-                            class="group/complete flex items-center gap-1.5 px-4 py-2 bg-green-500 hover:bg-green-600 text-white text-sm font-medium rounded-full transition-all duration-200 hover:scale-105 hover:shadow-md" 
-                            data-action="complete" 
-                            data-id="${task.id}"
-                            title="Mark as complete"
-                        >
-                            <span class="text-sm">✅</span>
-                            <span class="hidden sm:inline">Complete</span>
-                        </button>
-                        ` : ''}
-                        
-                        <button 
-                            class="group/delete flex items-center gap-1.5 px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-medium rounded-full transition-all duration-200 hover:scale-105 hover:shadow-md" 
+                            class="group/delete flex items-center gap-1.5 px-3 py-2 bg-gray-100 hover:bg-red-500 text-gray-600 hover:text-white text-sm font-medium rounded-lg transition-all duration-200 hover:scale-105 hover:shadow-md" 
                             data-action="delete" 
                             data-id="${task.id}"
                             title="Delete task"
                         >
-                            <span class="text-sm">❌</span>
+                            <span class="text-sm">🗑️</span>
                             <span class="hidden sm:inline">Delete</span>
                         </button>
                     </div>
