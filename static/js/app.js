@@ -741,6 +741,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const renderTasks = (tasks, isFiltered = false) => {
         const taskList = document.getElementById('task-list');
+        const addTaskBtn = document.getElementById('add-task-btn');
+        const searchBar = document.getElementById('task-search');
+        const priorityFilter = document.getElementById('priority-filter');
+        const filterContainer = document.getElementById('filter-container');
+        const searchFilterSection = document.querySelector('.flex.flex-col.sm\\:flex-row.gap-4.mb-6');
+        const statusFilterSection = document.querySelector('.flex.items-center.mb-4.space-x-2');
+        const tasksHeading = document.querySelector('h3.text-2xl.font-bold.text-gray-800.mb-4');
+        
         if (!taskList) return;
 
         // Only store all tasks when not filtering (i.e., when called from fetchTasks)
@@ -748,35 +756,88 @@ document.addEventListener('DOMContentLoaded', () => {
             allTasks = tasks;
         }
 
-        taskList.innerHTML = '';
+        // Get current filter status
+        const statusFilter = document.querySelector('[data-action="filter"].bg-blue-500')?.dataset.filter || 'all';
+        const hasNoTasksAtAll = allTasks.length === 0;
+        const isAllFilter = statusFilter === 'all';
+        const showAddButton = isAllFilter && hasNoTasksAtAll && !isFiltered;
+
         if (tasks.length === 0) {
-            const statusFilter = document.querySelector('[data-action="filter"].bg-blue-500')?.dataset.filter || 'all';
-            let emptyMessage = '';
-            let emptyTitle = '';
-            
-            if (statusFilter === 'pending') {
-                emptyTitle = 'All caught up!';
-                emptyMessage = 'You have no pending tasks.';
-            } else if (statusFilter === 'completed') {
-                emptyTitle = 'No completed tasks yet!';
-                emptyMessage = 'Finish some tasks to see them here.';
+            // Only hide UI elements when there are absolutely no tasks at all
+            if (hasNoTasksAtAll && !isFiltered) {
+                if (addTaskBtn) addTaskBtn.classList.add('hidden');
+                if (searchFilterSection) searchFilterSection.classList.add('hidden');
+                if (statusFilterSection) statusFilterSection.classList.add('hidden');
+                if (tasksHeading) tasksHeading.classList.add('hidden');
             } else {
-                emptyTitle = 'All caught up!';
-                emptyMessage = 'You have no pending tasks.';
+                // Keep UI elements visible when filtering results in empty list
+                if (addTaskBtn) addTaskBtn.classList.remove('hidden');
+                if (searchFilterSection) searchFilterSection.classList.remove('hidden');
+                if (statusFilterSection) statusFilterSection.classList.remove('hidden');
+                if (tasksHeading) tasksHeading.classList.remove('hidden');
             }
             
+            // Determine empty state message based on filter
+            let emptyTitle = '';
+            let emptyMessage = '';
+            let showAddTaskButton = false;
+            
+            if (hasNoTasksAtAll && !isFiltered) {
+                // No tasks at all - show Add Task button
+                emptyTitle = 'No tasks yet!';
+                emptyMessage = 'Start by adding your first task.';
+                showAddTaskButton = true;
+            } else if (statusFilter === 'pending') {
+                emptyTitle = 'All caught up!';
+                emptyMessage = 'You have no pending tasks. 🎉';
+            } else if (statusFilter === 'completed') {
+                emptyTitle = 'No completed tasks yet.';
+                emptyMessage = 'Finish some tasks to see them here. 🏆';
+            } else {
+                // All filter with tasks but filtered results are empty
+                emptyTitle = 'No tasks found';
+                emptyMessage = 'Try adjusting your search or filter criteria.';
+            }
+            
+            // Set engaging empty state HTML
             taskList.innerHTML = `
                 <div class="col-span-full flex flex-col items-center justify-center py-16 px-6">
-                    <div class="w-20 h-20 bg-gradient-to-br from-green-400 to-blue-500 rounded-full flex items-center justify-center mb-6 shadow-lg">
+                    <div class="w-20 h-20 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center mb-6 shadow-lg">
                         <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
                         </svg>
                     </div>
                     <h3 class="text-2xl font-bold text-gray-900 mb-2">${emptyTitle}</h3>
-                    <p class="text-gray-600 text-center max-w-md">${emptyMessage}</p>
+                    <p class="text-gray-600 text-center max-w-md mb-6">${emptyMessage}</p>
+                    ${showAddTaskButton ? `
+                    <button 
+                        id="add-first-task-btn"
+                        class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg shadow-md transition-all duration-200 hover:scale-105 font-medium"
+                    >
+                        Add Task
+                    </button>
+                    ` : ''}
                 </div>
             `;
+            
+            // Add event listener for the Add Task button if it exists
+            if (showAddTaskButton) {
+                const addFirstTaskBtn = document.getElementById('add-first-task-btn');
+                if (addFirstTaskBtn) {
+                    addFirstTaskBtn.addEventListener('click', handleAddTaskClick);
+                }
+            }
+            
             return;
+        } else {
+            // Show UI elements when task list is not empty
+            if (addTaskBtn) addTaskBtn.classList.remove('hidden');
+            if (searchFilterSection) searchFilterSection.classList.remove('hidden');
+            if (statusFilterSection) statusFilterSection.classList.remove('hidden');
+            if (tasksHeading) tasksHeading.classList.remove('hidden');
+            
+            // Clear the task list container
+            taskList.innerHTML = '';
         }
 
         tasks.forEach(task => {
@@ -847,7 +908,27 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
     
-    
+    const updateFAB = (show) => {
+        let fab = document.getElementById('floating-add-button');
+        
+        if (show) {
+            if (!fab) {
+                // Create FAB if it doesn't exist
+                fab = document.createElement('button');
+                fab.id = 'floating-add-button';
+                fab.className = 'fixed bottom-6 right-6 bg-blue-500 hover:bg-blue-600 text-white w-14 h-14 rounded-full shadow-lg flex items-center justify-center text-2xl transition-all duration-200 hover:scale-110 z-50';
+                fab.innerHTML = '➕';
+                fab.title = 'Add New Task';
+                fab.addEventListener('click', handleAddTaskClick);
+                document.body.appendChild(fab);
+            }
+            fab.classList.remove('hidden');
+        } else {
+            if (fab) {
+                fab.classList.add('hidden');
+            }
+        }
+    };
 
     const filterTasks = () => {
         const searchTerm = document.getElementById('task-search')?.value.toLowerCase() || '';
@@ -855,6 +936,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const statusFilter = document.querySelector('[data-action="filter"].bg-blue-500')?.dataset.filter || 'all';
 
         let filteredTasks = [...allTasks]; // Create a copy to avoid mutating original array
+
+        // Filter by status first
+        if (statusFilter === 'pending') {
+            filteredTasks = filteredTasks.filter(task => !task.is_completed);
+        } else if (statusFilter === 'completed') {
+            filteredTasks = filteredTasks.filter(task => task.is_completed);
+        }
+        // 'all' filter shows all tasks (no additional filtering needed)
 
         // Filter by search term
         if (searchTerm) {
@@ -868,13 +957,6 @@ document.addEventListener('DOMContentLoaded', () => {
             filteredTasks = filteredTasks.filter(task => 
                 task.priority === priorityFilter
             );
-        }
-
-        // Filter by status
-        if (statusFilter === 'pending') {
-            filteredTasks = filteredTasks.filter(task => !task.is_completed);
-        } else if (statusFilter === 'completed') {
-            filteredTasks = filteredTasks.filter(task => task.is_completed);
         }
 
         renderTasks(filteredTasks, true);
