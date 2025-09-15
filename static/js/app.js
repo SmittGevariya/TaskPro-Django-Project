@@ -524,13 +524,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (response.status === 401 || response.status === 403) { return forceLogout(); }
                 const data = await response.json();
                 if (!response.ok) {
-                    throw new Error(data?.detail || 'Failed to update profile');
+                    const errors = Object.values(data).flat().join(' ');
+                    throw new Error(errors|| 'Failed to update profile');
                 }
                 if (data?.username) {
                     localStorage.setItem('username', data.username);
                     updateUserProfile();
                 }
                 showToast('Profile updated successfully!');
+
+                setTimeout(() => {
+                    navigateTo('/components/dashboard/');
+                }, 1000);
             } catch (error) {
                 showToast(error.message, 'error');
             }
