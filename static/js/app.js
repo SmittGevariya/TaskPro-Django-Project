@@ -371,14 +371,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const router = async () => {
         const routes = [
+            { path: "/", view: 'home' },
             { path: "/login", view: 'login' }, 
+            { path: "/signup", view: 'register' }, 
             { path: "/register", view: 'register' }, 
-            { path: "/", view: 'dashboard' },
+            { path: "/tasks", view: 'dashboard' },
             { path: "/profile", view: 'profile' }
         ];
         let match = routes.find(route => route.path === location.pathname);
         if (!match) { 
-            match = { path: "/", view: 'dashboard' }; 
+            match = { path: "/", view: 'home' }; 
         }
 
         const token = localStorage.getItem('accessToken');
@@ -409,11 +411,16 @@ document.addEventListener('DOMContentLoaded', () => {
             if (userProfileSection) userProfileSection.classList.add('hidden');
         }
         
-        if (match.view === 'dashboard' && !token) { 
-            return navigateTo('/login'); 
-        }
-        if ((match.view === 'login' || match.view === 'register') && token) { 
-            return navigateTo('/'); 
+        if (token) {
+            // If logged in, redirect away from public pages to tasks
+            if (match.view === 'home' || match.view === 'login' || match.view === 'register') {
+                return navigateTo('/tasks');
+            }
+        } else {
+            // If not logged in and trying to access protected routes, redirect
+            if (match.view === 'dashboard' || match.view === 'profile') {
+                return navigateTo('/login');
+            }
         }
 
         await loadView(match.view);
@@ -436,6 +443,13 @@ document.addEventListener('DOMContentLoaded', () => {
                             container.classList.remove('opacity-0', 'translate-y-4');
                             container.classList.add('opacity-100', 'translate-y-0');
                         }
+                    }, 10);
+                } else if (viewName === 'home') {
+                    // Subtle fade-in for landing
+                    appContent.innerHTML = `<div class="opacity-0 transition-opacity duration-300">${htmlContent}</div>`;
+                    setTimeout(() => {
+                        const container = appContent.firstElementChild;
+                        if (container) container.classList.remove('opacity-0');
                     }, 10);
                 } else {
                     appContent.innerHTML = htmlContent;
@@ -582,7 +596,7 @@ document.addEventListener('DOMContentLoaded', () => {
             localStorage.setItem('refreshToken', responseData.refresh);
             // Fetch actual profile to get canonical username
             await fetchAndCacheUserProfile();
-            navigateTo('/');
+            navigateTo('/tasks');
         } catch (error) { 
             showToast(error.message, 'error'); 
         }
@@ -639,7 +653,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 showToast('Profile updated successfully!');
 
                 setTimeout(() => {
-                    navigateTo('/components/dashboard/');
+                    navigateTo('/tasks');
                 }, 1000);
             } catch (error) {
                 showToast(error.message, 'error');

@@ -1,0 +1,49 @@
+<section class="relative min-h-[calc(100vh-4rem)] flex items-center justify-center overflow-hidden">
+    <div class="absolute inset-0 bg-gradient-to-br from-blue-50 via-white to-indigo-50"></div>
+
+    <div class="absolute -top-24 -right-24 w-96 h-96 bg-blue-400/20 rounded-full blur-3xl"></div>
+    <div class="absolute -bottom-24 -left-24 w-[28rem] h-[28rem] bg-indigo-400/20 rounded-full blur-3xl"></div>
+
+    <div class="relative z-10 max-w-4xl mx-auto px-6 py-16 text-center opacity-0 translate-y-4 transition-all duration-300 ease-out"
+         x-init="setTimeout(()=>{ $el.classList.remove('opacity-0','translate-y-4'); $el.classList.add('opacity-100','translate-y-0'); }, 50)">
+        <span class="inline-flex items-center gap-2 px-3 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-700 border border-blue-200">
+            Task Management, Reimagined
+        </span>
+        <h1 class="mt-6 text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-gray-900">
+            Stay organized and get more done with <span class="bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">TaskPro</span>
+        </h1>
+        <p class="mt-5 text-base sm:text-lg md:text-xl text-gray-600 max-w-2xl mx-auto">
+            A fast, simple, and modern way to plan your day, manage tasks, and hit your goals.
+        </p>
+
+        <div class="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3">
+            <a data-link href="/signup" class="w-full sm:w-auto inline-flex items-center justify-center px-6 py-3 rounded-lg text-white bg-gradient-to-r from-blue-600 to-indigo-600 shadow-md hover:shadow-lg transition-all duration-200 hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                Get Started
+            </a>
+            <a data-link href="/login" class="w-full sm:w-auto inline-flex items-center justify-center px-6 py-3 rounded-lg border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 transition-all duration-200 hover:shadow focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-300">
+                Login
+            </a>
+        </div>
+
+        <div class="mt-12 grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-4xl mx-auto">
+            <div class="p-5 bg-white/70 backdrop-blur rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+                <div class="text-2xl">⚡</div>
+                <h3 class="mt-2 font-semibold text-gray-900">Fast & Intuitive</h3>
+                <p class="mt-1 text-sm text-gray-600">Create, edit, and complete tasks with zero friction.</p>
+            </div>
+            <div class="p-5 bg-white/70 backdrop-blur rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+                <div class="text-2xl">✅</div>
+                <h3 class="mt-2 font-semibold text-gray-900">Stay on Track</h3>
+                <p class="mt-1 text-sm text-gray-600">Priorities, due dates, and filters keep you focused.</p>
+            </div>
+            <div class="p-5 bg-white/70 backdrop-blur rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+                <div class="text-2xl">🔒</div>
+                <h3 class="mt-2 font-semibold text-gray-900">Secure</h3>
+                <p class="mt-1 text-sm text-gray-600">Your data is protected with secure authentication.</p>
+            </div>
+        </div>
+
+        <p class="mt-10 text-xs text-gray-400">Get started in seconds</p>
+    </div>
+</section>
+

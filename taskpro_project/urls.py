@@ -25,6 +25,7 @@ urlpatterns = [
 
     path('components/login/',TemplateView.as_view(template_name='components/login.html'),name='component-login'),
     path('components/register/',TemplateView.as_view(template_name='components/register.html'),name='component-register'),
+    path('components/home/',TemplateView.as_view(template_name='components/home.html'),name='component-home'),
     path('components/dashboard/',TemplateView.as_view(template_name='components/dashboard.html'),name='component-dashboard'),
     path('components/profile/',TemplateView.as_view(template_name='components/profile.html'),name='component-profile'),
 
