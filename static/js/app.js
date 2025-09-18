@@ -248,14 +248,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const isVisible = !dropdown.classList.contains('opacity-0');
             
             if (isVisible) {
-                // Hide dropdown
-                dropdown.classList.add('opacity-0', 'invisible', 'scale-95');
-                dropdown.classList.remove('scale-100');
+                // Hide dropdown with slide up animation
+                dropdown.classList.add('opacity-0', 'invisible', 'scale-95', 'translate-y-2');
+                dropdown.classList.remove('scale-100', 'translate-y-0');
                 arrow.style.transform = 'rotate(0deg)';
             } else {
-                // Show dropdown
-                dropdown.classList.remove('opacity-0', 'invisible', 'scale-95');
-                dropdown.classList.add('scale-100');
+                // Show dropdown with slide down animation
+                dropdown.classList.remove('opacity-0', 'invisible', 'scale-95', 'translate-y-2');
+                dropdown.classList.add('scale-100', 'translate-y-0');
                 arrow.style.transform = 'rotate(180deg)';
             }
         }
@@ -266,8 +266,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const arrow = document.getElementById('dropdown-arrow');
         
         if (dropdown && arrow) {
-            dropdown.classList.add('opacity-0', 'invisible', 'scale-95');
-            dropdown.classList.remove('scale-100');
+            dropdown.classList.add('opacity-0', 'invisible', 'scale-95', 'translate-y-2');
+            dropdown.classList.remove('scale-100', 'translate-y-0');
             arrow.style.transform = 'rotate(0deg)';
         }
     };
@@ -383,6 +383,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const token = localStorage.getItem('accessToken');
         
+        if (appContent && appContent.querySelector('.profile-form-container')) {
+            const container = appContent.querySelector('.profile-form-container');
+            if (container) {
+                container.classList.add('opacity-0', 'translate-y-4');
+                container.classList.remove('opacity-100', 'translate-y-0');
+                // Wait for animation to complete before loading new view
+                await new Promise(resolve => setTimeout(resolve, 250));
+            }
+        }
+        
         // Manage logout button and user profile section visibility based on authentication state
         if (token) {
             if (logoutButton) logoutButton.classList.remove('hidden');
@@ -416,7 +426,20 @@ document.addEventListener('DOMContentLoaded', () => {
             
             const htmlContent = await response.text();
             if (appContent) {
-                appContent.innerHTML = htmlContent;
+                // Add animation classes for profile form
+                if (viewName === 'profile') {
+                    appContent.innerHTML = `<div class="profile-form-container opacity-0 transform translate-y-4 transition-all duration-250 ease-out">${htmlContent}</div>`;
+                    // Trigger animation after a small delay
+                    setTimeout(() => {
+                        const container = appContent.querySelector('.profile-form-container');
+                        if (container) {
+                            container.classList.remove('opacity-0', 'translate-y-4');
+                            container.classList.add('opacity-100', 'translate-y-0');
+                        }
+                    }, 10);
+                } else {
+                    appContent.innerHTML = htmlContent;
+                }
                 setTimeout(() => attachEventListeners(viewName), 50);
             }
         } catch (error) {
@@ -1151,6 +1174,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (profileLogoutBtn) {
         profileLogoutBtn.addEventListener('click', () => {
+            closeProfileDropdown(); 
             localStorage.clear();
             if (logoutButton) logoutButton.classList.add('hidden');
             if (userProfileSection) userProfileSection.classList.add('hidden');
@@ -1181,9 +1205,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const profileBtn = document.getElementById('profile-btn');
     if (profileBtn) {
         profileBtn.addEventListener('click', () => {
+            closeProfileDropdown(); 
             navigateTo('/profile');
         });
-}
+    }
 
     router();
 });
