@@ -1,366 +1,28 @@
+import { API_URL, authFetch } from './utils/api.js';
+import { refreshAccessToken, forceLogout, fetchAndCacheUserProfile } from './utils/auth.js';
+import { showFieldError, hideFieldError, validateEmail, togglePasswordVisibility, updatePasswordStrength, validatePasswordConfirmation } from './utils/validation.js';
+import { showToast } from './ui/toast.js';
+import { modalState, getModalElements, openTaskModal, closeTaskModal, openConfirmModal, closeConfirmModal } from './ui/modal.js';
+import { updateUserProfileUI, toggleProfileDropdown, closeProfileDropdown } from './ui/profile.js';
+import { initDashboardUI } from './tasks/taskUI.js';
+import { createHandleLogin, createHandleRegister } from './utils/authHandlers.js';
+import { fetchProfileAndPopulate as fetchProfileAndPopulateUser, handleProfileSubmit as handleProfileSubmitUser } from './utils/user.js';
+
 document.addEventListener('DOMContentLoaded', () => {
     const appContent = document.getElementById('app-content');
     const logoutButton = document.getElementById('logout-button');
     const userProfileSection = document.getElementById('user-profile-section');
-    const API_URL = 'http://127.0.0.1:8000/api';
-    let taskModal, modalForm, modalTitle, modalSaveButton, modalCloseButton, taskIdInput, confirmModal, confirmDeleteBtn, cancelDeleteBtn, modalCloseButtonX, modalCompleteButton;
-    let modalListenersAttached = false;
-    let allTasks = []; // Store all tasks for filtering
-    let isRefreshing = false; // Flag to prevent multiple simultaneous refresh attempts
-
-    const getModalElements = () => {
-        taskModal = document.getElementById('task-modal');
-        modalForm = document.getElementById('modal-form');
-        modalTitle = document.getElementById('modal-title');
-        modalSaveButton = document.getElementById('modal-save-button');
-        modalCloseButton = document.getElementById('modal-close-button');
-        taskIdInput = document.getElementById('task-id');
-        confirmModal = document.getElementById('confirm-delete-modal');
-        confirmDeleteBtn = document.getElementById('confirm-delete-btn');
-        cancelDeleteBtn = document.getElementById('cancel-delete-btn');
-        modalCloseButtonX = document.getElementById('modal-close-button-x');
-        modalCompleteButton = document.getElementById('modal-complete-button');
-    };
 
     const initModalListeners = () => {
-        // Only attach listeners once
-        if (modalListenersAttached) return;
-        
-        // Initialize modal elements
         getModalElements();
-        
-        // Attach modal event listeners only once
+        const { modalForm, modalCloseButton, modalCloseButtonX, cancelDeleteBtn, confirmDeleteBtn, modalCompleteButton } = modalState;
         if (modalForm) {
-            modalCloseButton.addEventListener('click', closeTaskModal);
-            modalCloseButtonX.addEventListener('click', closeTaskModal);
-            // Save button is type="submit" so it will automatically trigger form submit
-            // No need for a separate click handler
-            cancelDeleteBtn.addEventListener('click', closeConfirmModal);
-            confirmDeleteBtn.addEventListener('click', handleConfirmDelete);
-            modalForm.addEventListener('submit', handleModalFormSubmit);
-            modalCompleteButton.addEventListener('click', handleModalCompleteClick);
-            modalListenersAttached = true;
-        }
-    };
-
-    const showToast = (message, type = 'success') => {
-        const colors = {
-            success: 'linear-gradient(to right, #00b09b, #96c93d)',
-            error: 'linear-gradient(to right, #ff5f6d, #ffc371)',
-        };
-        if (typeof Toastify !== 'undefined') {
-            Toastify({ 
-                text: message, 
-                duration: 3000, 
-                close: true, 
-                gravity: "top", 
-                position: "right", 
-                stopOnFocus: true, 
-                style: { background: colors[type] || colors.success } 
-            }).showToast();
-        }
-    };
-
-    const openTaskModal = () => { 
-        if (taskModal) {
-            taskModal.classList.remove('hidden'); 
-            setTimeout(() => { 
-                taskModal.classList.remove('opacity-0'); 
-                const form = taskModal.querySelector('form');
-                if (form) form.classList.remove('scale-95'); 
-            }, 10); 
-        }
-    };
-
-    const closeTaskModal = () => { 
-        if (taskModal) {
-            taskModal.classList.add('opacity-0'); 
-            const form = taskModal.querySelector('form');
-            if (form) form.classList.add('scale-95'); 
-            setTimeout(() => taskModal.classList.add('hidden'), 300); 
-        }
-    };
-
-    const openConfirmModal = () => { 
-        if (confirmModal) {
-            confirmModal.classList.remove('hidden'); 
-            setTimeout(() => { 
-                confirmModal.classList.remove('opacity-0'); 
-                const modalContent = confirmModal.querySelector('div.relative');
-                if (modalContent) modalContent.classList.remove('scale-95'); 
-            }, 10); 
-        }
-    };
-
-    const closeConfirmModal = () => { 
-        if (confirmModal) {
-            confirmModal.classList.add('opacity-0'); 
-            const modalContent = confirmModal.querySelector('div.relative');
-            if (modalContent) modalContent.classList.add('scale-95'); 
-            setTimeout(() => confirmModal.classList.add('hidden'), 300); 
-        }
-    };
-
-    // Password toggle functionality
-    const togglePasswordVisibility = (inputId, openEyeId, closedEyeId) => {
-        const input = document.getElementById(inputId);
-        const openEye = document.getElementById(openEyeId);
-        const closedEye = document.getElementById(closedEyeId);
-        
-        if (input && openEye && closedEye) {
-            if (input.type === 'password') {
-                input.type = 'text';
-                openEye.classList.add('hidden');
-                closedEye.classList.remove('hidden');
-            } else {
-                input.type = 'password';
-                openEye.classList.remove('hidden');
-                closedEye.classList.add('hidden');
-            }
-        }
-    };
-
-    // Password strength indicator
-    const updatePasswordStrength = () => {
-        const password = document.getElementById('register-password')?.value || '';
-        const strengthBars = document.querySelectorAll('#register-password-strength .h-1');
-        const strengthText = document.getElementById('password-strength-text');
-        
-        if (!strengthBars.length || !strengthText) return;
-        
-        let strength = 0;
-        let strengthLabel = '';
-        let strengthColor = '';
-        
-        // Reset bars
-        strengthBars.forEach(bar => {
-            bar.className = 'h-1 w-full bg-gray-200 rounded-full';
-        });
-        
-        if (password.length >= 8) strength++;
-        if (/[a-z]/.test(password)) strength++;
-        if (/[A-Z]/.test(password)) strength++;
-        if (/[0-9]/.test(password)) strength++;
-        if (/[^A-Za-z0-9]/.test(password)) strength++;
-        
-        // Update bars
-        for (let i = 0; i < strength; i++) {
-            if (strength <= 2) {
-                strengthBars[i].className = 'h-1 w-full bg-red-500 rounded-full';
-                strengthColor = 'text-red-500';
-            } else if (strength <= 3) {
-                strengthBars[i].className = 'h-1 w-full bg-yellow-500 rounded-full';
-                strengthColor = 'text-yellow-500';
-            } else {
-                strengthBars[i].className = 'h-1 w-full bg-green-500 rounded-full';
-                strengthColor = 'text-green-500';
-            }
-        }
-        
-        // Update text
-        if (password.length === 0) {
-            strengthLabel = 'Enter a password';
-            strengthColor = 'text-gray-500';
-        } else if (strength <= 2) {
-            strengthLabel = 'Weak password';
-        } else if (strength <= 3) {
-            strengthLabel = 'Fair password';
-        } else {
-            strengthLabel = 'Strong password';
-        }
-        
-        strengthText.textContent = strengthLabel;
-        strengthText.className = `text-xs mt-1 ${strengthColor}`;
-    };
-
-    // Password confirmation validation
-    const validatePasswordConfirmation = () => {
-        const password = document.getElementById('register-password')?.value || '';
-        const confirmPassword = document.getElementById('register-confirm-password')?.value || '';
-        const errorDiv = document.getElementById('register-confirm-password-error');
-        
-        if (!errorDiv) return;
-        
-        if (confirmPassword && password !== confirmPassword) {
-            errorDiv.textContent = 'Passwords do not match';
-            errorDiv.classList.remove('hidden');
-        } else {
-            errorDiv.classList.add('hidden');
-        }
-    };
-
-    // Form validation helpers
-    const showFieldError = (fieldId, message) => {
-        const errorDiv = document.getElementById(`${fieldId}-error`);
-        if (errorDiv) {
-            errorDiv.textContent = message;
-            errorDiv.classList.remove('hidden');
-        }
-    };
-
-    const hideFieldError = (fieldId) => {
-        const errorDiv = document.getElementById(`${fieldId}-error`);
-        if (errorDiv) {
-            errorDiv.classList.add('hidden');
-        }
-    };
-
-    const validateEmail = (email) => {
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        return emailRegex.test(email);
-    };
-
-    const fetchAndCacheUserProfile = async () => {
-        const token = localStorage.getItem('accessToken');
-        if (!token) return null;
-        try {
-            const response = await authFetch(`${API_URL}/auth/me/`);
-            if (!response.ok) return null;
-            const profile = await response.json();
-            if (profile?.username) {
-                localStorage.setItem('username', profile.username);
-            }
-            return profile;
-        } catch (e) { return null; }
-    };
-
-    const updateUserProfile = () => {
-        const username = localStorage.getItem('username');
-        const userAvatar = document.getElementById('user-avatar');
-        const userName = document.getElementById('user-name');
-        
-        if (username) {
-            const initials = username.charAt(0).toUpperCase();
-            if (userAvatar) {
-                userAvatar.textContent = initials;
-            }
-            if (userName) {
-                userName.textContent = username;
-            }
-        }
-    };
-
-    const toggleProfileDropdown = () => {
-        const dropdown = document.getElementById('profile-dropdown');
-        const arrow = document.getElementById('dropdown-arrow');
-        
-        if (dropdown && arrow) {
-            const isVisible = !dropdown.classList.contains('opacity-0');
-            
-            if (isVisible) {
-                // Hide dropdown with slide up animation
-                dropdown.classList.add('opacity-0', 'invisible', 'scale-95', 'translate-y-2');
-                dropdown.classList.remove('scale-100', 'translate-y-0');
-                arrow.style.transform = 'rotate(0deg)';
-            } else {
-                // Show dropdown with slide down animation
-                dropdown.classList.remove('opacity-0', 'invisible', 'scale-95', 'translate-y-2');
-                dropdown.classList.add('scale-100', 'translate-y-0');
-                arrow.style.transform = 'rotate(180deg)';
-            }
-        }
-    };
-
-    const closeProfileDropdown = () => {
-        const dropdown = document.getElementById('profile-dropdown');
-        const arrow = document.getElementById('dropdown-arrow');
-        
-        if (dropdown && arrow) {
-            dropdown.classList.add('opacity-0', 'invisible', 'scale-95', 'translate-y-2');
-            dropdown.classList.remove('scale-100', 'translate-y-0');
-            arrow.style.transform = 'rotate(0deg)';
-        }
-    };
-
-    const forceLogout = () => { 
-        localStorage.clear(); 
-        if (logoutButton) logoutButton.classList.add('hidden');
-        if (userProfileSection) userProfileSection.classList.add('hidden'); 
-        navigateTo('/login'); 
-        showToast('Your session has expired.', 'error'); 
-    };
-
-    // Token refresh functionality
-    const refreshAccessToken = async () => {
-        const refreshToken = localStorage.getItem('refreshToken');
-        if (!refreshToken) {
-            throw new Error('No refresh token available');
-        }
-
-        try {
-            const response = await fetch(`${API_URL}/auth/login/refresh/`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ refresh: refreshToken })
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to refresh token');
-            }
-
-            const data = await response.json();
-            localStorage.setItem('accessToken', data.access);
-            
-            // Update refresh token if provided
-            if (data.refresh) {
-                localStorage.setItem('refreshToken', data.refresh);
-            }
-
-            return data.access;
-        } catch (error) {
-            console.error('Token refresh failed:', error);
-            throw error;
-        }
-    };
-
-    const authFetch = async (url, options = {}) => {
-        const token = localStorage.getItem('accessToken');
-        
-        if (token) {
-            options.headers = {
-                ...options.headers,
-                'Authorization': `Bearer ${token}`
-            };
-        }
-
-        try {
-            const response = await fetch(url, options);
-            
-            // If token is expired and we have a refresh token, try to refresh
-            if ((response.status === 401 || response.status === 403) && 
-                localStorage.getItem('refreshToken') && !isRefreshing) {
-                
-                isRefreshing = true;
-                
-                try {
-                    await refreshAccessToken();
-                    
-                    const newToken = localStorage.getItem('accessToken');
-                    const retryOptions = {
-                        ...options,
-                        headers: {
-                            ...options.headers,
-                            'Authorization': `Bearer ${newToken}`
-                        }
-                    };
-                    
-                    const retryResponse = await fetch(url, retryOptions);
-                    isRefreshing = false;
-                    return retryResponse;
-                } catch (refreshError) {
-                    isRefreshing = false;
-                    // If refresh fails, force logout
-                    forceLogout();
-                    return response; // Return original response
-                }
-            }
-            
-            return response;
-        } catch (error) {
-            console.error('Auth fetch error:', error);
-            throw error;
+            modalCloseButton?.addEventListener('click', closeTaskModal);
+            modalCloseButtonX?.addEventListener('click', closeTaskModal);
+            cancelDeleteBtn?.addEventListener('click', closeConfirmModal);
+            confirmDeleteBtn?.addEventListener('click', () => import('./tasks/taskUI.js').then(m => m.handleConfirmDelete()));
+            modalForm.addEventListener('submit', (e) => import('./tasks/taskUI.js').then(m => m.handleModalFormSubmit(e)));
+            modalCompleteButton?.addEventListener('click', () => import('./tasks/taskUI.js').then(m => m.handleModalCompleteClick()));
         }
     };
 
@@ -395,16 +57,15 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
         
-        // Manage logout button and user profile section visibility based on authentication state
         if (token) {
             if (logoutButton) logoutButton.classList.remove('hidden');
             if (userProfileSection) {
                 userProfileSection.classList.remove('hidden');
                 // Ensure we display server-verified username (not raw input)
-                if (!localStorage.getItem('username')) {
-                    await fetchAndCacheUserProfile();
-                }
-                updateUserProfile();
+                
+                await fetchAndCacheUserProfile(authFetch);
+
+                updateUserProfileUI();
             }
         } else {
             if (logoutButton) logoutButton.classList.add('hidden');
@@ -412,12 +73,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         if (token) {
-            // If logged in, redirect away from public pages to tasks
             if (match.view === 'home' || match.view === 'login' || match.view === 'register') {
                 return navigateTo('/tasks');
             }
         } else {
-            // If not logged in and trying to access protected routes, redirect
             if (match.view === 'dashboard' || match.view === 'profile') {
                 return navigateTo('/login');
             }
@@ -468,10 +127,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (viewName === 'login') {
             const loginForm = document.getElementById('login-form');
             if (loginForm) {
-                loginForm.addEventListener('submit', handleLogin);
+                loginForm.addEventListener('submit', createHandleLogin(navigateTo, authFetch));
             }
             
-            // Password toggle functionality
             const toggleLoginPassword = document.getElementById('toggle-login-password');
             if (toggleLoginPassword) {
                 toggleLoginPassword.addEventListener('click', () => togglePasswordVisibility('login-password', 'login-eye-open', 'login-eye-closed'));
@@ -479,10 +137,9 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (viewName === 'register') {
             const registerForm = document.getElementById('register-form');
             if (registerForm) {
-                registerForm.addEventListener('submit', handleRegister);
+                registerForm.addEventListener('submit', createHandleRegister(navigateTo));
             }
             
-            // Password toggle functionality
             const toggleRegisterPassword = document.getElementById('toggle-register-password');
             const toggleRegisterConfirmPassword = document.getElementById('toggle-register-confirm-password');
             
@@ -494,7 +151,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 toggleRegisterConfirmPassword.addEventListener('click', () => togglePasswordVisibility('register-confirm-password', 'register-confirm-eye-open', 'register-confirm-eye-closed'));
             }
             
-            // Password strength indicator
             const passwordInput = document.getElementById('register-password');
             if (passwordInput) {
                 passwordInput.addEventListener('input', updatePasswordStrength);
@@ -506,356 +162,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 confirmPasswordInput.addEventListener('input', validatePasswordConfirmation);
             }
         } else if (viewName === 'dashboard') {
-            // Refresh modal elements (but don't reattach listeners)
-            getModalElements();
+            import('./tasks/taskUI.js').then(m => {m.initDashboardUI();updateUserProfileUI();});
             
-            // Attach dashboard element listeners
-            const addTaskBtn = document.getElementById('add-task-btn');
-            if (addTaskBtn) {
-                addTaskBtn.addEventListener('click', handleAddTaskClick);
-            }
-
-            const taskList = document.getElementById('task-list');
-            if (taskList) {
-                taskList.addEventListener('click', handleTaskActions);
-            }
-
-            const filterContainer = document.getElementById('filter-container');
-            if (filterContainer) {
-                filterContainer.addEventListener('click', handleFilterClick);
-            }
-
-            // Search functionality
-            const searchInput = document.getElementById('task-search');
-            if (searchInput) {
-                searchInput.addEventListener('input', filterTasks);
-            }
-
-            // Priority filter
-            const priorityFilter = document.getElementById('priority-filter');
-            if (priorityFilter) {
-                priorityFilter.addEventListener('change', filterTasks);
-            }
-
-            // Set user greeting
-            const userGreeting = document.getElementById('user-greeting');
-            const username = localStorage.getItem('username');
-            if (username && userGreeting) {
-                userGreeting.textContent = username;
-            }
-
-            fetchTasks();
         } else if (viewName === 'profile') {
             // Attach submit handler and fetch current profile
             const profileForm = document.getElementById('profile-form');
             if (profileForm) {
-                profileForm.addEventListener('submit', handleProfileSubmit);
+                profileForm.addEventListener('submit', handleProfileSubmitUser(navigateTo));
             }
-            fetchProfileAndPopulate();
-        }
-    };
-
-    const handleLogin = async (e) => {
-        e.preventDefault();
-        const formData = new FormData(e.target);
-        const data = Object.fromEntries(formData.entries());
-        
-        // Clear previous errors
-        hideFieldError('username');
-        hideFieldError('password');
-        
-        // Basic validation
-        if (!data.username) {
-            showFieldError('username', 'Username is required');
-            return;
-        }
-        
-        if (!data.password) {
-            showFieldError('password', 'Password is required');
-            return;
-        }
-        
-        try {
-            const response = await fetch(`${API_URL}/auth/login/`, { 
-                method: 'POST', 
-                headers: { 'Content-Type': 'application/json' }, 
-                body: JSON.stringify(data) 
-            });
-            const responseData = await response.json();
-            
-            if (!response.ok) {
-                if (response.status === 401) {
-                    showFieldError('password', 'Invalid username or password');
-                } else {
-                    throw new Error(responseData.detail || 'Failed to login.');
-                }
-                return;
-            }
-            
-            localStorage.setItem('accessToken', responseData.access);
-            localStorage.setItem('refreshToken', responseData.refresh);
-            // Fetch actual profile to get canonical username
-            await fetchAndCacheUserProfile();
-            navigateTo('/tasks');
-        } catch (error) { 
-            showToast(error.message, 'error'); 
-        }
-    };
-
-    const fetchProfileAndPopulate = async () => {
-        const token = localStorage.getItem('accessToken');
-        if (!token) { return navigateTo('/login'); }
-        try {
-            const response = await authFetch(`${API_URL}/auth/profile/`, {
-                headers: { 
-                    'Content-Type': 'application/json'
-                }
-            });
-            if (response.status === 401 || response.status === 403) { return forceLogout(); }
-            // if (!response.ok) throw new Error('Failed to load profile');
-            const contentType = response.headers.get("content-type");
-            if (!contentType || !contentType.includes("application/json")) {
-                throw new Error("Invalid response from server");
-            }
-            const data = await response.json();
-            document.getElementById('profile-username')?.setAttribute('value', data.username || '');
-            document.getElementById('profile-first-name')?.setAttribute('value', data.first_name || '');
-            document.getElementById('profile-last-name')?.setAttribute('value', data.last_name || '');
-            document.getElementById('profile-email')?.setAttribute('value', data.email || '');
-        } catch (error) {
-            showToast(error.message, 'error');
-        }
-    };
-
-        const handleProfileSubmit = async (e) => {
-            e.preventDefault();
-            const token = localStorage.getItem('accessToken');
-            if (!token) { return navigateTo('/login'); }
-            const form = e.target;
-            const formData = new FormData(form);
-            const payload = Object.fromEntries(formData.entries());
-            try {
-                const response = await authFetch(`${API_URL}/auth/profile/`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                if (response.status === 401 || response.status === 403) { return forceLogout(); }
-                const data = await response.json();
-                if (!response.ok) {
-                    const errors = Object.values(data).flat().join(' ');
-                    throw new Error(errors|| 'Failed to update profile');
-                }
-                if (data?.username) {
-                    localStorage.setItem('username', data.username);
-                    updateUserProfile();
-                }
-                showToast('Profile updated successfully!');
-
-                setTimeout(() => {
-                    navigateTo('/tasks');
-                }, 1000);
-            } catch (error) {
-                showToast(error.message, 'error');
-            }
-        };
-
-    const handleRegister = async (e) => {
-        e.preventDefault();
-        const formData = new FormData(e.target);
-        const data = Object.fromEntries(formData.entries());
-        
-        // Clear previous errors
-        hideFieldError('register-username');
-        hideFieldError('register-email');
-        hideFieldError('register-password');
-        hideFieldError('register-confirm-password');
-        
-        let hasErrors = false;
-        
-        // Username validation
-        if (!data.username) {
-            showFieldError('register-username', 'Username is required');
-            hasErrors = true;
-        } else if (data.username.length < 3) {
-            showFieldError('register-username', 'Username must be at least 3 characters');
-            hasErrors = true;
-        }
-        
-        // Email validation
-        if (!data.email) {
-            showFieldError('register-email', 'Email is required');
-            hasErrors = true;
-        } else if (!validateEmail(data.email)) {
-            showFieldError('register-email', 'Please enter a valid email address');
-            hasErrors = true;
-        }
-        
-        // Password validation
-        if (!data.password) {
-            showFieldError('register-password', 'Password is required');
-            hasErrors = true;
-        } else if (data.password.length < 8) {
-            showFieldError('register-password', 'Password must be at least 8 characters');
-            hasErrors = true;
-        }
-        
-        // Confirm password validation
-        if (!data.confirm_password) {
-            showFieldError('register-confirm-password', 'Please confirm your password');
-            hasErrors = true;
-        } else if (data.password !== data.confirm_password) {
-            showFieldError('register-confirm-password', 'Passwords do not match');
-            hasErrors = true;
-        }
-        
-        if (hasErrors) return;
-        
-        try {
-            const response = await fetch(`${API_URL}/auth/register/`, { 
-                method: 'POST', 
-                headers: { 'Content-Type': 'application/json' }, 
-                body: JSON.stringify(data) 
-            });
-            const responseData = await response.json();
-            
-            if (!response.ok) { 
-                // Handle field-specific errors
-                if (responseData.username) {
-                    showFieldError('register-username', responseData.username.join(', '));
-                }
-                if (responseData.email) {
-                    showFieldError('register-email', responseData.email.join(', '));
-                }
-                if (responseData.password) {
-                    showFieldError('register-password', responseData.password.join(', '));
-                }
-                
-                // Show general error if no specific field errors
-                if (!responseData.username && !responseData.email && !responseData.password) {
-                    const errorMessage = Object.entries(responseData)
-                        .map(([field, messages]) => `${field}: ${messages.join(', ')}`)
-                        .join(' | '); 
-                    throw new Error(errorMessage);
-                }
-                return;
-            }
-            showToast('Registration successful! Please log in.');
-            navigateTo('/login');
-        } catch (error) { 
-            showToast(error.message, 'error'); 
-        }
-    };
-
-    const handleAddTaskClick = () => {
-        if (modalForm) modalForm.reset();
-        if (taskIdInput) taskIdInput.value = '';
-        if (modalCompleteButton) modalCompleteButton.dataset.id = '';
-        if (modalTitle) modalTitle.textContent = 'Add New Task';
-        openTaskModal();
-    };
-
-    const handleEditClick = async (taskId) => {
-        const token = localStorage.getItem('accessToken');
-        console.log("Access token:", token);
-        try {
-            const response = await authFetch(`${API_URL}/tasks/${taskId}/`);
-            if (response.status === 401) { return forceLogout(); }
-            if (!response.ok) throw new Error('Task not found');
-            
-            const task = await response.json();
-
-            if (taskIdInput) taskIdInput.value = task.id;
-            if (modalCompleteButton) modalCompleteButton.dataset.id = task.id;
-            
-            const modalTaskTitle = document.getElementById('modal-task-title');
-            const modalTaskDescription = document.getElementById('modal-task-description');
-            const modalTaskDueDate = document.getElementById('modal-task-due-date');
-            const modalTaskPriority = document.getElementById('modal-task-priority');
-
-            if (modalTaskTitle) modalTaskTitle.value = task.title;
-            if (modalTaskDescription) modalTaskDescription.value = task.description;
-            if (modalTaskDueDate) modalTaskDueDate.value = task.due_date;
-            if (modalTaskPriority) modalTaskPriority.value = task.priority;
-            if (modalTitle) modalTitle.textContent = 'Edit Task';
-
-            openTaskModal();
-        } catch(error) { 
-            showToast(error.message, 'error'); 
-        }
-    };
-
-    const handleModalFormSubmit = async (e) => {
-        e.preventDefault();
-        
-        // Prevent multiple rapid submissions
-        if (modalForm.dataset.submitting === 'true') {
-            return;
-        }
-        
-        modalForm.dataset.submitting = 'true';
-        
-        const token = localStorage.getItem('accessToken');
-        const formData = new FormData(modalForm);
-        const data = Object.fromEntries(formData.entries());
-        const taskId = data.task_id;
-        const method = taskId ? 'PUT' : 'POST';
-        const url = taskId ? `${API_URL}/tasks/${taskId}/` : `${API_URL}/tasks/`;
-
-        try {
-            const response = await authFetch(url, { 
-                method: method, 
-                headers: { 
-                    'Content-Type': 'application/json'
-                }, 
-                body: JSON.stringify(data) 
-            });
-            if (response.status === 401) { return forceLogout(); }
-            if (!response.ok) { 
-                const errData = await response.json(); 
-                throw new Error(JSON.stringify(errData)); 
-            }
-            closeTaskModal();
-            fetchTasks();
-            showToast(taskId ? 'Task updated successfully!' : 'Task created successfully!');
-        } catch (error) {
-            showToast('Error saving task: ' + error.message, 'error');
-        } finally {
-            // Reset the submitting flag
-            modalForm.dataset.submitting = 'false';
-        }
-    };
-
-    const handleTaskActions = (e) => {
-        const target = e.target.closest('button');
-        if (!target) return;
-        const action = target.dataset.action;
-        const taskId = target.dataset.id;
-
-        if (!action || !taskId) return;
-        if (action === 'complete') markTaskComplete(taskId);
-        else if (action === 'delete') {
-            if (confirmDeleteBtn) confirmDeleteBtn.dataset.taskIdToDelete = taskId;
-            openConfirmModal();
-        } else if (action === 'edit') handleEditClick(taskId);
-    };
-
-    const handleConfirmDelete = () => {
-        if (confirmDeleteBtn) {
-            const taskId = confirmDeleteBtn.dataset.taskIdToDelete;
-            if (taskId) {
-                deleteTask(taskId);
-                closeConfirmModal();
-                delete confirmDeleteBtn.dataset.taskIdToDelete;
-            }
-        }
-    };
-
-    const handleModalCompleteClick = () => {
-        const taskId = modalCompleteButton?.dataset.id;
-        if (taskId) {
-            markTaskComplete(taskId);
-            closeTaskModal();
+            fetchProfileAndPopulateUser(navigateTo).then(() => updateUserProfileUI());
         }
     };
 
@@ -863,7 +178,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const target = e.target;
         if (target.dataset.action !== 'filter') return;
 
-        // Update button styles
         document.querySelectorAll('[data-action="filter"]').forEach(btn => {
             btn.classList.remove('bg-blue-500', 'text-white');
             btn.classList.add('bg-gray-200', 'text-gray-700');
@@ -871,7 +185,6 @@ document.addEventListener('DOMContentLoaded', () => {
         target.classList.add('bg-blue-500', 'text-white');
         target.classList.remove('bg-gray-200', 'text-gray-700');
 
-        // Apply filters
         filterTasks();
     };
 
@@ -951,39 +264,33 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (!taskList) return;
 
-        // Only store all tasks when not filtering (i.e., when called from fetchTasks)
         if (!isFiltered) {
             allTasks = tasks;
         }
 
-        // Get current filter status
         const statusFilter = document.querySelector('[data-action="filter"].bg-blue-500')?.dataset.filter || 'all';
         const hasNoTasksAtAll = allTasks.length === 0;
         const isAllFilter = statusFilter === 'all';
         const showAddButton = isAllFilter && hasNoTasksAtAll && !isFiltered;
 
         if (tasks.length === 0) {
-            // Only hide UI elements when there are absolutely no tasks at all
             if (hasNoTasksAtAll && !isFiltered) {
                 if (addTaskBtn) addTaskBtn.classList.add('hidden');
                 if (searchFilterSection) searchFilterSection.classList.add('hidden');
                 if (statusFilterSection) statusFilterSection.classList.add('hidden');
                 if (tasksHeading) tasksHeading.classList.add('hidden');
             } else {
-                // Keep UI elements visible when filtering results in empty list
                 if (addTaskBtn) addTaskBtn.classList.remove('hidden');
                 if (searchFilterSection) searchFilterSection.classList.remove('hidden');
                 if (statusFilterSection) statusFilterSection.classList.remove('hidden');
                 if (tasksHeading) tasksHeading.classList.remove('hidden');
             }
             
-            // Determine empty state message based on filter
             let emptyTitle = '';
             let emptyMessage = '';
             let showAddTaskButton = false;
             
             if (hasNoTasksAtAll && !isFiltered) {
-                // No tasks at all - show Add Task button
                 emptyTitle = 'No tasks yet!';
                 emptyMessage = 'Start by adding your first task.';
                 showAddTaskButton = true;
@@ -999,7 +306,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 emptyMessage = 'Try adjusting your search or filter criteria.';
             }
             
-            // Set engaging empty state HTML
             taskList.innerHTML = `
                 <div class="col-span-full flex flex-col items-center justify-center py-16 px-6">
                     <div class="w-20 h-20 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center mb-6 shadow-lg">
@@ -1020,7 +326,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             `;
             
-            // Add event listener for the Add Task button if it exists
             if (showAddTaskButton) {
                 const addFirstTaskBtn = document.getElementById('add-first-task-btn');
                 if (addFirstTaskBtn) {
@@ -1030,13 +335,11 @@ document.addEventListener('DOMContentLoaded', () => {
             
             return;
         } else {
-            // Show UI elements when task list is not empty
             if (addTaskBtn) addTaskBtn.classList.remove('hidden');
             if (searchFilterSection) searchFilterSection.classList.remove('hidden');
             if (statusFilterSection) statusFilterSection.classList.remove('hidden');
             if (tasksHeading) tasksHeading.classList.remove('hidden');
             
-            // Clear the task list container
             taskList.innerHTML = '';
         }
 
@@ -1130,42 +433,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    const filterTasks = () => {
-        const searchTerm = document.getElementById('task-search')?.value.toLowerCase() || '';
-        const priorityFilter = document.getElementById('priority-filter')?.value || 'all';
-        const statusFilter = document.querySelector('[data-action="filter"].bg-blue-500')?.dataset.filter || 'all';
 
-        let filteredTasks = [...allTasks]; // Create a copy to avoid mutating original array
-
-        // Filter by status first
-        if (statusFilter === 'pending') {
-            filteredTasks = filteredTasks.filter(task => !task.is_completed);
-        } else if (statusFilter === 'completed') {
-            filteredTasks = filteredTasks.filter(task => task.is_completed);
-        }
-        // 'all' filter shows all tasks (no additional filtering needed)
-
-        // Filter by search term
-        if (searchTerm) {
-            filteredTasks = filteredTasks.filter(task => 
-                task.title.toLowerCase().includes(searchTerm)
-            );
-        }
-
-        // Filter by priority
-        if (priorityFilter !== 'all') {
-            filteredTasks = filteredTasks.filter(task => 
-                task.priority === priorityFilter
-            );
-        }
-
-        renderTasks(filteredTasks, true);
-    };
-
-    // Initialize modal listeners once at startup
     initModalListeners();
 
-    // Logout button event listener
     if (logoutButton) {
         logoutButton.addEventListener('click', () => {
             localStorage.clear();
@@ -1175,7 +445,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Profile dropdown event listeners
     const profileDropdownBtn = document.getElementById('profile-dropdown-btn');
     const profileLogoutBtn = document.getElementById('profile-logout-btn');
     
@@ -1196,7 +465,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Close dropdown when clicking outside
     document.addEventListener('click', (e) => {
         const dropdown = document.getElementById('profile-dropdown');
         const dropdownBtn = document.getElementById('profile-dropdown-btn');
@@ -1223,6 +491,5 @@ document.addEventListener('DOMContentLoaded', () => {
             navigateTo('/profile');
         });
     }
-
     router();
 });
