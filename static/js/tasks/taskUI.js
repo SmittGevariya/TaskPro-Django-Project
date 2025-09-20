@@ -14,6 +14,22 @@ export const initDashboardUI = () => {
     const taskList = document.getElementById('task-list');
     if (taskList) taskList.addEventListener('click', handleTaskActions);
 
+    taskList.addEventListener('click', (e) => {
+        if(e.target.classList.contains('toggle-desc')){
+            const id = e.target.getAttribute('data-id');
+            const desc = taskList.querySelector(`.task-desc[data-id="${id}"]`);
+            if(!desc) return;
+
+            if(desc.classList.contains('line-clamp-3')){
+                desc.classList.remove('line-clamp-3');
+                e.target.textContent = 'Read less';
+            } else {
+                desc.classList.add('line-clamp-3');
+                e.target.textContent = 'Read more';
+            }
+        }
+    });
+
     const filterContainer = document.getElementById('filter-container');
     if (filterContainer) filterContainer.addEventListener('click', handleFilterClick);
 
@@ -226,8 +242,9 @@ export const renderTasks = (tasks, isFiltered = false) => {
     tasks.forEach(task => {
         const priorityColors = { 'High': 'bg-red-500 text-white', 'Medium': 'bg-yellow-500 text-white', 'Low': 'bg-green-500 text-white' };
         const priorityIcons = { 'High': '🔴', 'Medium': '🟡', 'Low': '🟢' };
+        const isLongDescription = task.description && task.description.split(' ').length > 20;
         const card = `
-            <div class="group bg-white rounded-xl shadow-md hover:shadow-lg p-6 transition-all duration-300 ease-in-out hover:scale-105 hover:-translate-y-1 ${task.is_completed ? 'opacity-75 border-l-4 border-green-500' : 'border-l-4 border-gray-200'} relative overflow-hidden">
+            <div class="group bg-white rounded-xl shadow-md hover:shadow-lg p-6 transition-all duration-300 ease-in-out hover:scale-105 hover:-translate-y-1 ${task.is_completed ? 'opacity-75 border-l-4 border-green-500' : 'border-l-4 border-gray-200'} relative overflow-hidden flex flex-col h-80">
                 <div class="flex justify-between items-start mb-4">
                     <h3 class="text-xl font-bold text-gray-900 leading-tight ${task.is_completed ? 'line-through text-gray-500' : ''}">${task.title}</h3>
                     <span class="flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full ${priorityColors[task.priority] || 'bg-gray-500 text-white'} shadow-sm">
@@ -235,7 +252,12 @@ export const renderTasks = (tasks, isFiltered = false) => {
                         ${task.priority}
                     </span>
                 </div>
-                <p class="text-gray-600 text-sm mb-6 leading-relaxed ${task.is_completed ? 'line-through text-gray-400' : ''}">${task.description || 'No description provided'}</p>
+                <div class="desc-container mb-6 min-h-[4.5rem] flex flex-col flex-grow">
+                    <p class="task-desc text-gray-600 text-sm leading-relaxed line-clamp-3 ${task.is_completed ? 'line-through text-gray-400' : ''}" data-id="${task.id}">
+                    ${task.description || 'No description provided'}
+                    </p>
+                    ${isLongDescription ? `<button class="toggle-desc text-blue-500 text-xs font-medium mt-1 hover:underline self-start" data-id="${task.id}">Read more</button>` : ''}
+                </div>
                 <div class="flex items-center gap-2 mb-6 text-sm text-gray-500">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                     <span class="font-medium">Due: ${task.due_date}</span>
@@ -253,5 +275,4 @@ export const renderTasks = (tasks, isFiltered = false) => {
         taskList.innerHTML += card;
     });
 };
-
 
