@@ -244,7 +244,7 @@ export const renderTasks = (tasks, isFiltered = false) => {
         const priorityIcons = { 'High': '🔴', 'Medium': '🟡', 'Low': '🟢' };
         const isLongDescription = task.description && task.description.split(' ').length > 20;
         const card = `
-            <div class="group bg-white rounded-xl shadow-md hover:shadow-lg p-6 transition-all duration-300 ease-in-out hover:scale-105 hover:-translate-y-1 ${task.is_completed ? 'opacity-75 border-l-4 border-green-500' : 'border-l-4 border-gray-200'} relative overflow-hidden flex flex-col h-80">
+            <div class="group bg-white rounded-xl shadow-md hover:shadow-lg p-6 transition-all duration-300 ease-in-out hover:scale-105 hover:-translate-y-1 ${task.is_completed ? 'opacity-75 border-l-4 border-green-500' : 'border-l-4 border-gray-200'} relative overflow-hidden flex flex-col h-72">
                 <div class="flex justify-between items-start mb-4">
                     <h3 class="text-xl font-bold text-gray-900 leading-tight ${task.is_completed ? 'line-through text-gray-500' : ''}">${task.title}</h3>
                     <span class="flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full ${priorityColors[task.priority] || 'bg-gray-500 text-white'} shadow-sm">
