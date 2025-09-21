@@ -81,9 +81,16 @@ export const handleModalFormSubmit = async (e) => {
         const response = taskId ? await updateTaskApi(taskId, data) : await createTaskApi(data);
         if (response.status === 401) return;
         if (!response.ok) { const errData = await response.json(); throw new Error(JSON.stringify(errData)); }
+        
         closeTaskModal();
-        fetchTasks();
+        
         showToast(taskId ? 'Task updated successfully!' : 'Task created successfully!');
+        
+        try {
+            await fetchTasks();
+        } catch (err) {
+            console.error("fetchTasks failed:", err);
+        }
     } catch (error) {
         showToast('Error saving task: ' + error.message, 'error');
     } finally {

@@ -21,7 +21,20 @@ document.addEventListener('DOMContentLoaded', () => {
             modalCloseButtonX?.addEventListener('click', closeTaskModal);
             cancelDeleteBtn?.addEventListener('click', closeConfirmModal);
             confirmDeleteBtn?.addEventListener('click', () => import('./tasks/taskUI.js').then(m => m.handleConfirmDelete()));
-            modalForm.addEventListener('submit', (e) => import('./tasks/taskUI.js').then(m => m.handleModalFormSubmit(e)));
+            
+            modalForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                import('./tasks/taskUI.js').then(m => m.handleModalFormSubmit(e));
+            });
+            
+            const submitButton = document.getElementById('modal-save-button');
+            if (submitButton) {
+                submitButton.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    import('./tasks/taskUI.js').then(m => m.handleModalFormSubmit(e));
+                });
+            }
+            
             modalCompleteButton?.addEventListener('click', () => import('./tasks/taskUI.js').then(m => m.handleModalCompleteClick()));
         }
     };
@@ -165,6 +178,9 @@ document.addEventListener('DOMContentLoaded', () => {
             import('./tasks/taskUI.js').then(m => {
                 m.initDashboardUI();
                 updateUserProfileUI();
+                
+                initModalListeners();
+                
                 const taskList = document.querySelector('#task-list'); 
 
                 if (taskList) {
@@ -283,14 +299,13 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
 
-    initModalListeners();
-
     if (logoutButton) {
         logoutButton.addEventListener('click', () => {
             localStorage.clear();
             if (logoutButton) logoutButton.classList.add('hidden');
             if (userProfileSection) userProfileSection.classList.add('hidden');
-            navigateTo('/login');
+            showToast('Logged out successfully.');
+            setTimeout(() => navigateTo('/login'), 1000);
         });
     }
 
@@ -310,7 +325,8 @@ document.addEventListener('DOMContentLoaded', () => {
             localStorage.clear();
             if (logoutButton) logoutButton.classList.add('hidden');
             if (userProfileSection) userProfileSection.classList.add('hidden');
-            navigateTo('/login');
+            showToast('Logged out successfully.');
+            setTimeout(() => navigateTo('/login'), 1000);
         });
     }
 

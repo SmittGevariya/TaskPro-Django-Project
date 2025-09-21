@@ -28,6 +28,7 @@ export const createHandleLogin = (navigateTo, authFetch) => async (e) => {
         localStorage.setItem('accessToken', responseData.access);
         localStorage.setItem('refreshToken', responseData.refresh);
         await fetchAndCacheUserProfile(authFetch);
+        showToast('Login successful! Welcome back.');
         navigateTo('/tasks');
     } catch (error) {
         showToast(error.message, 'error');
