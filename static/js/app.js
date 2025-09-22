@@ -4,7 +4,7 @@ import { showFieldError, hideFieldError, validateEmail, togglePasswordVisibility
 import { showToast } from './ui/toast.js';
 import { modalState, getModalElements, openTaskModal, closeTaskModal, openConfirmModal, closeConfirmModal } from './ui/modal.js';
 import { updateUserProfileUI, toggleProfileDropdown, closeProfileDropdown } from './ui/profile.js';
-import { initDashboardUI,renderTasks} from './tasks/taskUI.js';
+import { initDashboardUI,renderTasks,fetchTasks,deleteTask,markTaskComplete} from './tasks/taskUI.js';
 import { createHandleLogin, createHandleRegister } from './utils/authHandlers.js';
 import { fetchProfileAndPopulate as fetchProfileAndPopulateUser, handleProfileSubmit as handleProfileSubmitUser } from './utils/user.js';
 
@@ -13,7 +13,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const logoutButton = document.getElementById('logout-button');
     const userProfileSection = document.getElementById('user-profile-section');
 
+    let modalListenersAttached = false;
     const initModalListeners = () => {
+        if (modalListenersAttached) return;
+        modalListenersAttached = true;
         getModalElements();
         const { modalForm, modalCloseButton, modalCloseButtonX, cancelDeleteBtn, confirmDeleteBtn, modalCompleteButton } = modalState;
         if (modalForm) {
@@ -209,70 +212,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 profileForm.addEventListener('submit', handleProfileSubmitUser(navigateTo));
             }
             fetchProfileAndPopulateUser(navigateTo).then(() => updateUserProfileUI());
-        }
-    };
-
-    const markTaskComplete = async (taskId) => {
-        const token = localStorage.getItem('accessToken');
-        try {
-            const response = await authFetch(`${API_URL}/tasks/${taskId}/`, { 
-                method: 'PATCH', 
-                headers: { 
-                    'Content-Type': 'application/json'
-                }, 
-                body: JSON.stringify({ is_completed: true }) 
-            });
-            if (response.status === 401) { return forceLogout(); }
-            if (!response.ok) throw new Error('Failed to update task.');
-            fetchTasks();
-            showToast('Task marked as complete!');
-        } catch (error) {
-            showToast(error.message, 'error');
-        }
-    };
-
-    const deleteTask = async (taskId) => {
-        const token = localStorage.getItem('accessToken');
-        try {
-            const response = await authFetch(`${API_URL}/tasks/${taskId}/`, { 
-                method: 'DELETE'
-            });
-            if (response.status === 401) { return forceLogout(); }
-            if (!response.ok) throw new Error('Failed to delete task.');
-            fetchTasks();
-            showToast('Task deleted successfully.');
-        } catch (error) {
-            showToast(error.message, 'error');
-        }
-    };
-
-    const fetchTasks = async () => {
-        const token = localStorage.getItem('accessToken');
-        if (!token) { 
-            navigateTo('/login'); 
-            return; 
-        }
-        try {
-            const response = await authFetch(`${API_URL}/tasks/`, { 
-                method: 'GET'
-            });
-            if (response.status === 401 || response.status === 403) { return forceLogout(); }
-            if (!response.ok) throw new Error('Could not fetch tasks.');
-            
-            const responseText = await response.text();
-            let tasks;
-            try {
-                tasks = JSON.parse(responseText);
-            } catch (parseError) {
-                console.error('API returned HTML instead of JSON. Check your /api/tasks/ endpoint.');
-                renderTasks([]);
-                showToast('API configuration error. Please check server setup.', 'error');
-                return;
-            }
-            
-            renderTasks(tasks);
-        } catch (error) {
-            console.error('Fetch tasks error:', error);
         }
     };
 
